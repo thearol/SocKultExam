@@ -1,0 +1,11 @@
+---
+title: "DataCleaning"
+author: "Signe Kløve Kjær"
+date: "2/5/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
