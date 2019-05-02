@@ -9,3 +9,58 @@ output: word_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+```{r}
+setwd("~/SocKultExam")
+library(pacman)
+p_load(tibble)
+
+data_path = "/Users/thearolskovsloth/SocKultExam/Data/"
+
+#lets loop
+files <- list.files(path = data_path)
+files
+
+data <- data.frame(matrix(ncol = 36, nrow = 0))
+
+
+for (i in files) {
+  d <- read.delim(file = paste(data_path, i, sep = ""), sep = ",", header = TRUE)
+  data = rbind(data,d)
+}
+
+#KIRIS DATA
+kiri_path = "/Users/thearolskovsloth/SocKultExam/"
+kiri_files <- list.files(path = kiri_path, pattern = "*.csv")
+kiri_files
+
+kiri_data <- data.frame(matrix(ncol = 35, nrow = 0))
+for (i in kiri_files) {
+  d <- read.delim(file = paste(kiri_path, i, sep = ""), sep = ",", header = TRUE)
+  kiri_data = rbind(kiri_data,d)
+}
+
+
+#merge the two
+
+kiri_data <- add_column(kiri_data, Computer = "Two screens", .after = 4)
+
+data <- rbind(data, kiri_data)
+
+unique(data$GroupNumber)
+
+
+
+#CLEAN DATA
+
+
+
+
+
+
+```
+
+
+
+
+
