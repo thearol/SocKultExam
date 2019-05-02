@@ -10,6 +10,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+```{r loading packages, include = FALSE}
+
+#install.packages("tidybayes"); install.packages("LaplacesDemon")
+library(brms); library(tidyverse); library(tidybayes); library(ggplot2); library(LaplacesDemon); library(rethinking)
+```
+
+
+
 ```{r}
 setwd("~/SocKultExam")
 library(pacman)
@@ -100,6 +108,59 @@ unique(data$SubjectID_left)
 ```
 
 
+Bayesian tutorial on logistic regression: https://www.jamesrrae.com/post/bayesian-logistic-regression-using-brms-part-1/
+
+```{r plotting data on psychometric function}
+#Making column, which expresses difficulty
+data$dif_blue <- abs(data$Prop_blue_image_1-data$Prop_blue_image_2)
+
+#Making a column, which expresses answer of participants, 0 = left picture, 1 = right picture
+data$right_answer <- as.factor(ifelse(data$Response_right > 0, 1, 0))
+data$left_answer <- as.factor(ifelse(data$Response_left > 0, 1, 0))
+
+#Joining joint answer to one column
+data$joint_answer <- as.factor(data$Joint_right+ data$Joint_left)
+
+##Checking correlation between regression variables
+#This will help us know what to expect before doing our logistic regression analysis
+cor.test(data$right_answer,data$dif_blue)
+cor.test(data$left_answer,data$dif_blue)
+cor.test(data$joint_answer,data$dif_blue)
+
+#They are negatively correlated, BUT WHAT DOES THIS MEAN?
+
+get_prior(right_answer ~ dif_blue| SubjectID_right, data = data)
+
+#Making priors
+m1priors <- c(
+  prior(normal(0,2), class = "Intercept"), #How to motiavte this?
+  prior(normal(0,1), class = "sd"), #Roughly on the same scale
+  prior(normal(0, 2), class='sd',group='SubjectID_right'), 
+  prior(normal(0, 2), class='sd',coef='dif_blue',group='SubjectID_right'), 
+  prior(normal(0, 2), class='sd',coef='Intercept',group='SubjectID_right'), 
+  prior(normal(0, 2), class='sigma')
+          ) 
+#Plotting implications of bayesian analysis
+#prior predictive check
+mP_prior <- brm( right_answer ~ dif_blue| SubjectID_right, prior = m1priors,
+           data = data, sample_prior = "only",iter = 4000)
+
+pp_check(mP_prior, nsamples = 100)
+
+#Making the model
+m1 <- brm(
+  right_answer ~ dif_blue| SubjectID_right,
+  data = data,
+  prior = m1priors,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123 # Adding a seed makes results reproducible.
+) 
+
+
+summary(m1)
+
+#The outcome is in log odds scale, we can use tidybayes to transform them 
+```
 
 
 
