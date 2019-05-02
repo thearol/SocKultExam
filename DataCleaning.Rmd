@@ -36,7 +36,7 @@ kiri_files
 
 kiri_data <- data.frame(matrix(ncol = 35, nrow = 0))
 for (i in kiri_files) {
-  d <- read.delim(file = paste(kiri_path, i, sep = ""), sep = ",", header = TRUE)
+  d <- read.delim(file = paste(kiri_path, i, sep = ""), sep = ",", header = TRUE, stringsAsFactors = FALSE)
   kiri_data = rbind(kiri_data,d)
 }
 
@@ -53,10 +53,49 @@ unique(data$GroupNumber)
 
 #CLEAN DATA
 
+data <- subset(data, select = -c(X))
+
+data$GroupNumber[data$GroupNumber == "17_10_30"] <- 17
+data$GroupNumber[data$GroupNumber == "18_10_30"] <- 18
+data$GroupNumber[data$GroupNumber == "19_10_50"] <- 19
+data$GroupNumber[data$GroupNumber == "20_10_50"] <- 20
+data$GroupNumber[data$GroupNumber == "21_12_15"] <- 21
+data$GroupNumber[data$GroupNumber == "22_12_15"] <- 22
+data$GroupNumber[data$GroupNumber == "23_12_40"] <- 23
+data$GroupNumber[data$GroupNumber == "24_12_40"] <- 24
+data$GroupNumber[data$GroupNumber == "25_15_00"] <- 25
+data$GroupNumber[data$GroupNumber == "26_15_00"] <- 26
+data$GroupNumber[data$GroupNumber == "27_15_20"] <- 27
+data$GroupNumber[data$GroupNumber == "28_15_20"] <- 28
+data$GroupNumber[data$GroupNumber == "29_16_00"] <- 29
+data$GroupNumber[data$GroupNumber == "30_16_00"] <- 30
+data$GroupNumber[data$GroupNumber == "31_16_20"] <- 31
+data$GroupNumber[data$GroupNumber == "32_16_20"] <- 32
+data$GroupNumber[data$GroupNumber == "33_9_30"] <- 33
+data$GroupNumber[data$GroupNumber == "34_09_30"] <- 34
+data$GroupNumber[data$GroupNumber == "35_09_50"] <- 35
+data$GroupNumber[data$GroupNumber == "36_9_50"] <- 36
+data$GroupNumber[data$GroupNumber == "37_26_4"] <- 37
+data$GroupNumber[data$GroupNumber == "38_26_4"] <- 38
+data$GroupNumber[data$GroupNumber == "39_26_4"] <- 39
+data$GroupNumber[data$GroupNumber == "40_26_4"] <- 40
+
+data$SubjectID_left <- as.character(data$SubjectID_left)
+data$SubjectID_right <- as.character(data$SubjectID_right)
+data$SubjectID_left[data$SubjectID_left == "steph"] <- "stephanie"
+data$SubjectID_right[data$SubjectID_right == "Emil"] <- "emil"
+data$SubjectID_right[data$SubjectID_right == "Sebber"] <- "seb"
+data$SubjectID_left[data$SubjectID_left == "signe"] <- "SigneR"
+data$SubjectID_right[data$SubjectID_right == "karo"] <- "Karoline"
+data$SubjectID_right[data$SubjectID_right == "tobias"] <- "Toby"
+data$SubjectID_left[data$SubjectID_left == "Nina"] <- "nina"
+data$SubjectID_right[data$SubjectID_right == "theasmom"] <- "Theasmom"
+data$SubjectID_left[data$SubjectID_left == "emma"] <- "Emma"
+data$SubjectID_right[data$SubjectID_right == "LasseKob"] <- "Lasse"
 
 
-
-
+unique(data$SubjectID_right)
+unique(data$SubjectID_left)
 
 ```
 
