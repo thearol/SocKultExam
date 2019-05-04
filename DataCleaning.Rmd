@@ -13,17 +13,17 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r loading packages, include = FALSE}
 
 #install.packages("tidybayes"); install.packages("LaplacesDemon")
-library(brms); library(tidyverse); library(tidybayes); library(ggplot2); library(LaplacesDemon); library(rethinking)
+library(brms); library(tidyverse); library(tidybayes); library(ggplot2); library(LaplacesDemon); library(rethinking); library(tidyr); library(reshape2)
 ```
 
 
 
-```{r}
-setwd("~/SocKultExam")
+```{r loading data and merging, include = FALSE}
+setwd("~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam-master/")
 library(pacman)
-p_load(tibble)
+p_load(tibble, tidyr)
 
-data_path = "/Users/thearolskovsloth/SocKultExam/Data/"
+data_path = "Data/"
 
 #lets loop
 files <- list.files(path = data_path)
@@ -38,7 +38,7 @@ for (i in files) {
 }
 
 #KIRIS DATA
-kiri_path = "/Users/thearolskovsloth/SocKultExam/"
+kiri_path = "~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam-master/"
 kiri_files <- list.files(path = kiri_path, pattern = "*.csv")
 kiri_files
 
@@ -58,6 +58,11 @@ data <- rbind(data, kiri_data)
 unique(data$GroupNumber)
 
 
+
+```
+
+
+```{r clean data, include = FALSE}
 
 #CLEAN DATA
 
@@ -105,51 +110,112 @@ data$SubjectID_right[data$SubjectID_right == "LasseKob"] <- "Lasse"
 unique(data$SubjectID_right)
 unique(data$SubjectID_left)
 
+
+```
+
+
+
+```{r making variables for sensitivty, include = FALSE}
+#Making column, which expresses difficulty
+data$dif_blue <- data$Prop_blue_image_1-data$Prop_blue_image_2
+
+#Making a column, which expresses answer of participants, 0 = left picture, 1 = right picture
+data$right_answer <- ifelse(data$Response_right > 0, 1, 0)
+data$left_answer <- ifelse(data$Response_left > 0, 1, 0)
+
+#Joining joint answer to one column
+data$joint_answer <- data$Joint_right+ data$Joint_left
+
+```
+
+
+
+```{r making long format, include = FALSE}
+#take just the columns we need
+sen_data <- subset(data, select = c(GroupNumber, SubjectID_right, SubjectID_left, Gender_left, Gender_right, Familiarity, dif_blue, left_answer, right_answer, joint_answer ))
+
+
+#change to long format 
+
+sen_data <- melt(sen_data, 
+                     variable.name = "Position",
+                     value.name = "Subject",
+                     id.vars = c("GroupNumber", "Gender_left", "Gender_right", "Familiarity", "dif_blue", "left_answer", "right_answer", "joint_answer"))
+
+sen_data$answer <- ifelse(sen_data$Position == "SubjectID_right", sen_data$right_answer,  sen_data$left_answer)
+
 ```
 
 
 Bayesian tutorial on logistic regression: https://www.jamesrrae.com/post/bayesian-logistic-regression-using-brms-part-1/
 
 ```{r plotting data on psychometric function}
-#Making column, which expresses difficulty
-data$dif_blue <- abs(data$Prop_blue_image_1-data$Prop_blue_image_2)
-
-#Making a column, which expresses answer of participants, 0 = left picture, 1 = right picture
-data$right_answer <- as.factor(ifelse(data$Response_right > 0, 1, 0))
-data$left_answer <- as.factor(ifelse(data$Response_left > 0, 1, 0))
-
-#Joining joint answer to one column
-data$joint_answer <- as.factor(data$Joint_right+ data$Joint_left)
 
 ##Checking correlation between regression variables
 #This will help us know what to expect before doing our logistic regression analysis
-cor.test(data$right_answer,data$dif_blue)
-cor.test(data$left_answer,data$dif_blue)
-cor.test(data$joint_answer,data$dif_blue)
+cor.test(sen_data$answer,sen_data$dif_blue)
+cor.test(sen_data$joint_answer,sen_data$dif_blue)
 
 #They are negatively correlated, BUT WHAT DOES THIS MEAN?
-
-get_prior(right_answer ~ dif_blue| SubjectID_right, data = data)
+get_prior(answer ~ 0 + dif_blue + Subject, data = sen_data)
 
 #Making priors
 m1priors <- c(
-  prior(normal(0,2), class = "Intercept"), #How to motiavte this?
-  prior(normal(0,1), class = "sd"), #Roughly on the same scale
-  prior(normal(0, 2), class='sd',group='SubjectID_right'), 
-  prior(normal(0, 2), class='sd',coef='dif_blue',group='SubjectID_right'), 
-  prior(normal(0, 2), class='sd',coef='Intercept',group='SubjectID_right'), 
-  prior(normal(0, 2), class='sigma')
-          ) 
+  #prior(normal(0,2), class = "Intercept"), #How to motiavte this?
+  prior(normal(0,1), class = "sigma"), #Roughly on the same scale
+  prior(normal(0,2), class = "b"), #How to motiavte this?
+  prior(normal(0,1), class = "b", coef = "dif_blue"), #Roughly on the same scale
+  prior(normal(0,2), class = "b", coef = "SubjectAmalie"),
+  prior(normal(0,1), class = "b", coef = "Subjectandersh"),
+  prior(normal(0,1), class = "b", coef = "Subjectandersweile"),
+  prior(normal(0,1), class = "b", coef = "SubjectAne"),
+  prior(normal(0,1), class = "b", coef = "Subjectannas"),
+  prior(normal(0,1), class = "b", coef = "Subjectanneed"),
+  prior(normal(0,1), class = "b", coef = "SubjectAstrid"),
+  prior(normal(0,1), class = "b", coef = "SubjectBritta"),
+  prior(normal(0,1), class = "b", coef = "Subjectemil"),
+  prior(normal(0,1), class = "b", coef = "SubjectEmma"),
+  prior(normal(0,1), class = "b", coef = "SubjectEsben"),
+  prior(normal(0,1), class = "b", coef = "SubjectFred"),
+  prior(normal(0,1), class = "b", coef = "SubjectIda"),
+  prior(normal(0,1), class = "b", coef = "SubjectJan"),
+  prior(normal(0,1), class = "b", coef = "SubjectJohn"),
+  prior(normal(0,1), class = "b", coef = "SubjectKaroline"),
+  prior(normal(0,1), class = "b", coef = "SubjectKatrine"),
+  prior(normal(0,1), class = "b", coef = "Subjectkenneth"),
+  prior(normal(0,1), class = "b", coef = "Subjectlarsk"),
+  prior(normal(0,1), class = "b", coef = "SubjectLasse"),
+  prior(normal(0,1), class = "b", coef = "Subjectlaura"),
+  prior(normal(0,1), class = "b", coef = "SubjectLaurits"),
+  prior(normal(0,1), class = "b", coef = "SubjectMagnus"),
+  prior(normal(0,1), class = "b", coef = "SubjectMalte"),
+  prior(normal(0,1), class = "b", coef = "SubjectMatilde"),
+  prior(normal(0,1), class = "b", coef = "SubjectMichael"),
+  prior(normal(0,1), class = "b", coef = "Subjectmikkel"),
+  prior(normal(0,1), class = "b", coef = "SubjectNanna"),
+  prior(normal(0,1), class = "b", coef = "Subjectnina"),
+  prior(normal(0,1), class = "b", coef = "SubjectOliver"),
+  prior(normal(0,1), class = "b", coef = "SubjectSara"),
+  prior(normal(0,1), class = "b", coef = "Subjectseb"),
+  prior(normal(0,1), class = "b", coef = "Subjectsignekirk"),
+  prior(normal(0,1), class = "b", coef = "SubjectSigneR"),
+  prior(normal(0,1), class = "b", coef = "SubjectSimon"),
+  prior(normal(0,1), class = "b", coef = "Subjectsimonmoller"),
+  prior(normal(0,1), class = "b", coef = "Subjectstephanie"),
+  prior(normal(0,1), class = "b", coef = "SubjectTelma"),
+  prior(normal(0,1), class = "b", coef = "SubjectTheasmom"),  
+  prior(normal(0,1), class = "b", coef = "SubjectToby")
+  ) 
 #Plotting implications of bayesian analysis
 #prior predictive check
-mP_prior <- brm( right_answer ~ dif_blue| SubjectID_right, prior = m1priors,
-           data = data, sample_prior = "only",iter = 4000)
+prior <- brm( answer ~ 0 + dif_blue + Subject, prior = m1priors,
+           data = sen_data, sample_prior = "only",iter = 4000)
 
-pp_check(mP_prior, nsamples = 100)
+pp_check(prior, nsamples = 100)
 
 #Making the model
 m1 <- brm(
-  right_answer ~ dif_blue| SubjectID_right,
+  right_answer ~ dif_blue+ SubjectID_right,
   data = data,
   prior = m1priors,
   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
@@ -160,7 +226,18 @@ m1 <- brm(
 summary(m1)
 
 #The outcome is in log odds scale, we can use tidybayes to transform them 
+
+#parameters <- m1 %>% gather_draws(b_dif_blue) %>% median_hdi()
+#  print(exp(parameters[c(".value",".lower",".upper")])) # exp() converts log-odds to odds
+
+
 ```
 
+
+```{r plotting sigmoid function, echo = FALSE}
+plot(marginal_effects(m1), points = TRUE, rug = TRUE)
+
+#This plot shows the predicted probability of answering right as an effect of difficulty
+```
 
 
