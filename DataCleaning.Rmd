@@ -13,15 +13,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r loading packages, include = FALSE}
 
 #install.packages("tidybayes"); install.packages("LaplacesDemon")
-library(brms); library(tidyverse); library(tidybayes); library(ggplot2); library(LaplacesDemon); library(rethinking); library(tidyr); library(reshape2)
+library(brms); library(tidyverse); library(tidybayes); library(ggplot2); library(LaplacesDemon); library(rethinking); library(tidyr); library(reshape2);library(pacman); library(tibble);library(tidyr)
+
 ```
 
 
 
 ```{r loading data and merging, include = FALSE}
 setwd("~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam-master/")
-library(pacman)
-p_load(tibble, tidyr)
 
 data_path = "Data/"
 
@@ -106,11 +105,6 @@ data$SubjectID_right[data$SubjectID_right == "theasmom"] <- "Theasmom"
 data$SubjectID_left[data$SubjectID_left == "emma"] <- "Emma"
 data$SubjectID_right[data$SubjectID_right == "LasseKob"] <- "Lasse"
 
-
-unique(data$SubjectID_right)
-unique(data$SubjectID_left)
-
-
 ```
 
 
@@ -129,101 +123,191 @@ data$joint_answer <- data$Joint_right+ data$Joint_left
 ```
 
 
+Bayesian tutorial on logistic regression: https://www.jamesrrae.com/post/bayesian-logistic-regression-using-brms-part-1/
 
-```{r making long format, include = FALSE}
-#take just the columns we need
-sen_data <- subset(data, select = c(GroupNumber, SubjectID_right, SubjectID_left, Gender_left, Gender_right, Familiarity, dif_blue, left_answer, right_answer, joint_answer ))
+#Individual performance
 
+```{r logistic regression using wide format, individual left}
 
-#change to long format 
+###LEFT
+#Making unique subjects
+data$unique_ID_right <- paste(data$GroupNumber, data$SubjectID_right, sep = "_")
+data$unique_ID_left <- paste(data$GroupNumber, data$SubjectID_left, sep = "_")
 
-sen_data <- melt(sen_data, 
-                     variable.name = "Position",
-                     value.name = "Subject",
-                     id.vars = c("GroupNumber", "Gender_left", "Gender_right", "Familiarity", "dif_blue", "left_answer", "right_answer", "joint_answer"))
+#Getting priors
+get_prior(left_answer ~ dif_blue, data = data)
 
-sen_data$answer <- ifelse(sen_data$Position == "SubjectID_right", sen_data$right_answer,  sen_data$left_answer)
+#Making a number of iterations variable
+n = 1
+
+###Making a loop for individual slope
+for (i in unique(data$unique_ID_left)){
+  data_i <- filter(data, unique_ID_left == i)
+  
+  #Defining priors
+  prior =  c(
+  prior(normal(0,2), class = "Intercept"), #How to motiavte this?
+  #prior(normal(0,2), class = "sigma"), #Roughly on the same scale
+  prior(normal(0,2), class = "b"), #How to motiavte this?
+  prior(normal(0,1), class = "b", coef = "dif_blue"))
+  
+  #Prior predictive check
+  prior_check <- brm( left_answer ~ dif_blue, prior = prior,
+           data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
+
+  pp_check <- pp_check(prior_check, nsamples = 100)   
+  
+  #Saving pp_check, doesn't work. But probably not nessecary either...
+  #ggsave(filename = paste("pp_check_prior/",plot_var[[n]], sep = ""), plot = pp_check, device = png)
+
+ 
+  #Making the model
+  m <- brm(
+    left_answer ~ dif_blue,
+    data = data_i,
+    prior = prior,
+    family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+    seed = 123 # Adding a seed makes results reproducible.
+  ) 
+  
+  summary(m)
+  
+  #Saving summary in temporary dataframe
+  data_i$Est_int_left <- fixef(m)[1]
+  data_i$Error_int_left <- fixef(m)[3]
+  data_i$Est_dif_blue_left <- fixef(m)[2]
+  data_i$Error_dif_blue_left <- fixef(m)[4]
+  
+  #Insert into permanent data frame
+  if (n == 1){
+    Results <- data_i
+  } else {
+    Results <- rbind(Results, data_i)
+  }
+  
+n = n + 1
+  
+}
 
 ```
 
 
-Bayesian tutorial on logistic regression: https://www.jamesrrae.com/post/bayesian-logistic-regression-using-brms-part-1/
+```{r logistic regression using wide format, individual right}
+#Making a number of iterations variable
+n = 1
 
-```{r plotting data on psychometric function}
-
-##Checking correlation between regression variables
-#This will help us know what to expect before doing our logistic regression analysis
-cor.test(sen_data$answer,sen_data$dif_blue)
-cor.test(sen_data$joint_answer,sen_data$dif_blue)
-
-#They are negatively correlated, BUT WHAT DOES THIS MEAN?
-get_prior(answer ~ 0 + dif_blue + Subject, data = sen_data)
-
-#Making priors
-m1priors <- c(
-  #prior(normal(0,2), class = "Intercept"), #How to motiavte this?
-  prior(normal(0,1), class = "sigma"), #Roughly on the same scale
+###Making a loop for individual slope
+for (i in unique(data$unique_ID_right)){
+  data_i <- filter(Results, unique_ID_right == i)
+  
+  #Defining priors
+  prior =  c(
+  prior(normal(0,2), class = "Intercept"), #How to motiavte this?
+  #prior(normal(0,2), class = "sigma"), #Roughly on the same scale
   prior(normal(0,2), class = "b"), #How to motiavte this?
-  prior(normal(0,1), class = "b", coef = "dif_blue"), #Roughly on the same scale
-  prior(normal(0,2), class = "b", coef = "SubjectAmalie"),
-  prior(normal(0,1), class = "b", coef = "Subjectandersh"),
-  prior(normal(0,1), class = "b", coef = "Subjectandersweile"),
-  prior(normal(0,1), class = "b", coef = "SubjectAne"),
-  prior(normal(0,1), class = "b", coef = "Subjectannas"),
-  prior(normal(0,1), class = "b", coef = "Subjectanneed"),
-  prior(normal(0,1), class = "b", coef = "SubjectAstrid"),
-  prior(normal(0,1), class = "b", coef = "SubjectBritta"),
-  prior(normal(0,1), class = "b", coef = "Subjectemil"),
-  prior(normal(0,1), class = "b", coef = "SubjectEmma"),
-  prior(normal(0,1), class = "b", coef = "SubjectEsben"),
-  prior(normal(0,1), class = "b", coef = "SubjectFred"),
-  prior(normal(0,1), class = "b", coef = "SubjectIda"),
-  prior(normal(0,1), class = "b", coef = "SubjectJan"),
-  prior(normal(0,1), class = "b", coef = "SubjectJohn"),
-  prior(normal(0,1), class = "b", coef = "SubjectKaroline"),
-  prior(normal(0,1), class = "b", coef = "SubjectKatrine"),
-  prior(normal(0,1), class = "b", coef = "Subjectkenneth"),
-  prior(normal(0,1), class = "b", coef = "Subjectlarsk"),
-  prior(normal(0,1), class = "b", coef = "SubjectLasse"),
-  prior(normal(0,1), class = "b", coef = "Subjectlaura"),
-  prior(normal(0,1), class = "b", coef = "SubjectLaurits"),
-  prior(normal(0,1), class = "b", coef = "SubjectMagnus"),
-  prior(normal(0,1), class = "b", coef = "SubjectMalte"),
-  prior(normal(0,1), class = "b", coef = "SubjectMatilde"),
-  prior(normal(0,1), class = "b", coef = "SubjectMichael"),
-  prior(normal(0,1), class = "b", coef = "Subjectmikkel"),
-  prior(normal(0,1), class = "b", coef = "SubjectNanna"),
-  prior(normal(0,1), class = "b", coef = "Subjectnina"),
-  prior(normal(0,1), class = "b", coef = "SubjectOliver"),
-  prior(normal(0,1), class = "b", coef = "SubjectSara"),
-  prior(normal(0,1), class = "b", coef = "Subjectseb"),
-  prior(normal(0,1), class = "b", coef = "Subjectsignekirk"),
-  prior(normal(0,1), class = "b", coef = "SubjectSigneR"),
-  prior(normal(0,1), class = "b", coef = "SubjectSimon"),
-  prior(normal(0,1), class = "b", coef = "Subjectsimonmoller"),
-  prior(normal(0,1), class = "b", coef = "Subjectstephanie"),
-  prior(normal(0,1), class = "b", coef = "SubjectTelma"),
-  prior(normal(0,1), class = "b", coef = "SubjectTheasmom"),  
-  prior(normal(0,1), class = "b", coef = "SubjectToby")
+  prior(normal(0,1), class = "b", coef = "dif_blue"))
+  
+  #Prior predictive check
+  prior_check <- brm( right_answer ~ dif_blue, prior = prior,
+           data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
+
+  pp_check <- pp_check(prior_check, nsamples = 100)   
+  
+  #Saving pp_check, doesn't work. But probably not nessecary either...
+  #ggsave(filename = paste("pp_check_prior/",plot_var[[n]], sep = ""), plot = pp_check, device = png)
+
+ 
+  #Making the model
+  m <- brm(
+    right_answer ~ dif_blue,
+    data = data_i,
+    prior = prior,
+    family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+    seed = 123 # Adding a seed makes results reproducible.
   ) 
-#Plotting implications of bayesian analysis
-#prior predictive check
-prior <- brm( answer ~ 0 + dif_blue + Subject, prior = m1priors,
-           data = sen_data, sample_prior = "only",iter = 4000)
+  
+  summary(m)
+  
+  #Saving summary in temporary dataframe
+  data_i$Est_int_right <- fixef(m)[1]
+  data_i$Error_int_right <- fixef(m)[3]
+  data_i$Est_dif_blue_right <- fixef(m)[2]
+  data_i$Error_dif_blue_right <- fixef(m)[4]
+  
+  #Insert into permanent data frame
+  if (n == 1){
+    Results <- data_i
+  } else {
+    Results <- rbind(Results, data_i)
+  }
+  
+n = n + 1
+  
+}
 
-pp_check(prior, nsamples = 100)
 
-#Making the model
-m1 <- brm(
-  right_answer ~ dif_blue+ SubjectID_right,
-  data = data,
-  prior = m1priors,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-  seed = 123 # Adding a seed makes results reproducible.
-) 
+```
 
+#Joint performance
 
-summary(m1)
+```{r logistic regression using wide format, joint}
+###JOINT
+#Recoding joint answer to be 0 and 1's, 0 right, 1 left, NA = no leader
+Results$joint_answer[Results$joint_answer == 0] <- NA #Replacing 0's with NA
+Results$joint_answer[Results$joint_answer == -1] <- 0
+
+#Making a number of iterations variable
+n = 1
+
+###Making a loop for individual slope
+for (i in unique(data$GroupNumber)){
+  data_i <- filter(Results, GroupNumber == i)
+  
+  #Defining priors
+  prior =  c(
+  prior(normal(0,2), class = "Intercept"), #How to motiavte this?
+  #prior(normal(0,2), class = "sigma"), #Roughly on the same scale
+  prior(normal(0,2), class = "b"), #How to motiavte this?
+  prior(normal(0,1), class = "b", coef = "dif_blue"))
+  
+  #Prior predictive check
+  prior_check <- brm( joint_answer ~ dif_blue, prior = prior,
+           data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
+
+  pp_check <- pp_check(prior_check, nsamples = 100)   
+  
+  #Saving pp_check, doesn't work. But probably not nessecary either...
+  #ggsave(filename = paste("pp_check_prior/",plot_var[[n]], sep = ""), plot = pp_check, device = png)
+
+ 
+  #Making the model
+  m <- brm(
+    joint_answer ~ dif_blue,
+    data = data_i,
+    prior = prior,
+    family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+    seed = 123 # Adding a seed makes results reproducible.
+  ) 
+  
+  summary(m)
+  
+  #Saving summary in temporary dataframe
+  data_i$Est_int_joint <- fixef(m)[1]
+  data_i$Error_int_joint <- fixef(m)[3]
+  data_i$Est_dif_blue_joint <- fixef(m)[2]
+  data_i$Error_dif_blue_joint <- fixef(m)[4]
+  
+  #Insert into permanent data frame
+  if (n == 1){
+    Results <- data_i
+  } else {
+    Results <- rbind(Results, data_i)
+  }
+  
+n = n + 1
+  
+}
+
 
 #The outcome is in log odds scale, we can use tidybayes to transform them 
 
@@ -233,11 +317,104 @@ summary(m1)
 
 ```
 
+#Making long format
+This is in order to calculate the equality bias
 
-```{r plotting sigmoid function, echo = FALSE}
-plot(marginal_effects(m1), points = TRUE, rug = TRUE)
+```{r making long format, include = FALSE}
+#take just the columns we need
+#L_data <- subset(Results, select = c(GroupNumber, SubjectID_right, SubjectID_left, Gender_left, Gender_right, Familiarity, dif_blue, left_answer, right_answer, joint_answer ))
 
-#This plot shows the predicted probability of answering right as an effect of difficulty
+
+#change to long format 
+
+L_data <- melt(Results, 
+                     variable.name = "Position",
+                     value.name = "Subject",
+                     id.vars = c("GroupNumber", "Gender_left", "Gender_right", "Familiarity", "dif_blue", "left_answer", "right_answer", "joint_answer"))
+
 ```
 
 
+
+##Følgende blev ikke nødvendigt alligevel...
+```{r logistic regression using long format, individual}
+
+##Checking correlation between regression variables
+#This will help us know what to expect before doing our logistic regression analysis
+cor.test(sen_data$answer,sen_data$dif_blue )
+cor.test(sen_data$joint_answer,sen_data$dif_blue)
+
+#They are negatively correlated, BUT WHAT DOES THIS MEAN?
+
+#Making unique subjects
+sen_data$unique_ID <- paste(sen_data$GroupNumber, sen_data$Subject, sep = "_")
+
+#Getting priors
+get_prior(answer ~ dif_blue, data = sen_data)
+
+#Making a list varibale for saving summary
+summary_var <- paste("summary", unique(sen_data$unique_ID), sep = "_")
+
+#Making variable list for saving plots
+plot_var <- paste("prior_check", unique(sen_data$unique_ID), sep = "_")
+
+#Making a number of iterations variable
+n = 1
+
+###Making a loop for individual slope
+for (i in unique(sen_data$unique_ID)){
+  data_i <- filter(sen_data, unique_ID == i)
+  
+  #Defining priors
+  prior =  c(
+  prior(normal(0,2), class = "Intercept"), #How to motiavte this?
+  #prior(normal(0,2), class = "sigma"), #Roughly on the same scale
+  prior(normal(0,2), class = "b"), #How to motiavte this?
+  prior(normal(0,1), class = "b", coef = "dif_blue"))
+  
+  #Prior predictive check
+  prior_check <- brm( answer ~ dif_blue, prior = prior,
+           data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
+
+  pp_check <- pp_check(prior_check, nsamples = 100)   
+  
+  #Saving pp_check, doesn't work. But probably not nessecary either...
+  #ggsave(filename = paste("pp_check_prior/",plot_var[[n]], sep = ""), plot = pp_check, device = png)
+
+ 
+  #Making the model
+  m <- brm(
+    answer ~ dif_blue,
+    data = data_i,
+    prior = prior,
+    family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+    seed = 123 # Adding a seed makes results reproducible.
+  ) 
+  
+  summary(m)
+  
+  #Saving summary in temporary dataframe
+  data_i$Est_int <- fixef(m)[1]
+  data_i$Error_int <- fixef(m)[3]
+  data_i$Est_dif_blue <- fixef(m)[2]
+  data_i$Error_dif_blue <- fixef(m)[4]
+  
+  #Insert into permanent data frame
+  if (n == 1){
+    Results_individual <- data_i
+  } else {
+    Results_individual <- rbind(Results_individual, data_i)
+  }
+  
+n = n + 1
+  
+}
+
+
+#The outcome is in log odds scale, we can use tidybayes to transform them 
+
+#parameters <- m1 %>% gather_draws(b_dif_blue) %>% median_hdi()
+#  print(exp(parameters[c(".value",".lower",".upper")])) # exp() converts log-odds to odds
+
+
+```
