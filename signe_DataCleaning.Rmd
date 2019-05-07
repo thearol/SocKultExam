@@ -218,9 +218,9 @@ ggplot(data = joint_data, aes(Correct_joint, fill = dif_blue)) +
 
 ```
 
-```{r test for one individual }
+```{r test for one individual skal slettes på et tidspunkt }
 
-data_i <- filter(data, unique_ID_left == "12_Telma")
+data_i <- filter(left_data, unique_ID_left == "12_Telma")
 
 #THEA
 trans_left_path = file.path("~/SocKultExam/plots/transition/left/", paste("trans_left_plot_", ".jpeg", sep = ""))
@@ -242,8 +242,6 @@ pp_left_path = file.path("/Users/signeklovekjaer/Documents/CognitiveScience/4.se
 marginal_left_path = file.path("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/plots/marginal/left/", paste("marginal_left_plot_", ".jpeg", sep = ""))
 
 
-#make dif blue categorical
-data_i$dif_blue <- as.numeric(data_i$dif_blue)
 
 
 #Defining priors
@@ -290,6 +288,8 @@ dev.off()
 
 
 ```
+
+
 ```{r trying to predict but not really working out }
 ## predicted responses
 nd <- tibble(dif_blue = (seq(from = -4, to = 4, by = 1)))
@@ -300,7 +300,31 @@ pp <- predict(m,  allow_new_levels = T, sample_new_levels = "gaussian", newdata 
 head(pp)
 
 
+
 pp <- predict(m)
+
+# it will use the training data set to generate predictions
+y.pred = predict(m, type="response", allow_new_levels = T, sample_new_levels = "gaussian", newdata = nd, summary = FALSE)
+plot(data_i$dif_blue, y.pred, col=(round(y.pred)+1))
+
+
+plot(data_i$dif_blue, y.pred)
+
+
+newdata = data.frame(wt = 2.1, disp = 180)
+
+nd <- tibble(dif_blue = factor(seq(from = 0, to = 1, by = 1)))
+
+newdata <- data.frame(dif_blue = 1)
+
+
+newdata <- data.frame(dif_blue = (seq(from = -4, to = 4, by = 1)),
+                      left_answer = c(0, 1))
+
+
+y.pred = predict(m, newdata = , type="response", allow_new_levels = T,  nsamples = NULL, re_formula = NULL, summary = FALSE)
+
+
 
 ```
 
@@ -324,6 +348,7 @@ n = 1
 
 ###Making a loop for individual slope
 for (i in unique(left_data$unique_ID_left)){
+  
   data_i <- filter(left_data, unique_ID_left == i)
   
   #path for transission plot
@@ -408,7 +433,7 @@ n = 1
 
 ###Making a loop for individual slope
 for (i in unique(right_data$unique_ID_right)){
-  data_i <- filter(Results, unique_ID_right == i)
+  data_i <- filter(right_data, unique_ID_right == i)
   
   #path for transsion plot
   trans_right_path = file.path("~/SocKultExam/plots/transition/right/", paste("trans_right_plot_", unique_ID_right,".jpeg", sep = ""))
@@ -482,15 +507,15 @@ n = n + 1
 ```{r logistic regression using wide format, joint}
 ###JOINT
 #Recoding joint answer to be 0 and 1's, 0 right, 1 left, NA = no leader
-Results$joint_answer[Results$joint_answer == 0] <- NA #Replacing 0's with NA
-Results$joint_answer[Results$joint_answer == -1] <- 0
+joint_data$joint_answer[joint_data$joint_answer == 0] <- NA #Replacing 0's with NA
+joint_data$joint_answer[joint_data$joint_answer == -1] <- 0
 
 #Making a number of iterations variable
 n = 1
 
 ###Making a loop for individual slope
 for (i in unique(joint_data$GroupNumber)){
-  data_i <- filter(Results, GroupNumber == i)
+  data_i <- filter(joint_data, GroupNumber == i)
   
   #path for transission plot
   trans_joint_path = file.path("~/SocKultExam/plots/transition/joint/", paste("trans_joint_plot_", GroupNumber, ".jpeg", sep = ""))
@@ -554,6 +579,11 @@ n = n + 1
   
 }
 
+#Recoding joint answer to be 0 and 1's, 0 right, 1 left, NA = no leader
+Results$joint_answer[Results$joint_answer == 0] <- NA #Replacing 0's with NA
+Results$joint_answer[Results$joint_answer == -1] <- 0
+
+
 
 #The outcome is in log odds scale, we can use tidybayes to transform them 
 
@@ -589,10 +619,10 @@ L_data <- melt(Results,
 
 ```
 
-- Gem rhat, efficient samples *
-- plot(m) - transitions *
-- filter(correct)*
-- pp_check udenfor loop for 5 random participants*
+
 - logistic regression individuals and joint - plot 
+  - posterior predictive for one participant 
 - calculate equality bias (best/worst)
 - calculate collaborative bias (joint/best)
+- Regression for difficulty 
+- write csv with results
