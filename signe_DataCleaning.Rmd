@@ -220,7 +220,7 @@ ggplot(data = joint_data, aes(Correct_joint, fill = dif_blue)) +
 
 ```{r test for one individual skal slettes på et tidspunkt }
 
-data_i <- filter(left_data, unique_ID_left == "12_Telma")
+data_i <- filter(data, unique_ID_left == "12_Telma")
 
 #THEA
 trans_left_path = file.path("~/SocKultExam/plots/transition/left/", paste("trans_left_plot_", ".jpeg", sep = ""))
@@ -419,6 +419,11 @@ n = n + 1
   
 }
 
+
+table(unique(Results$Image_1))
+table(Results$Image_1)
+length(unique(Results$Image_2))
+
 ```
 
 
@@ -436,10 +441,10 @@ for (i in unique(right_data$unique_ID_right)){
   data_i <- filter(right_data, unique_ID_right == i)
   
   #path for transsion plot
-  trans_right_path = file.path("~/SocKultExam/plots/transition/right/", paste("trans_right_plot_", unique_ID_right,".jpeg", sep = ""))
+  #trans_right_path = file.path("~/SocKultExam/plots/transition/right/", paste("trans_right_plot_", unique_ID_right,".jpeg", sep = ""))
   
   #path for pp_check
-  pp_right_path = file.path("~/SocKultExam/plots/pp_check/right/", paste("pp_right_plot_", unique_ID_right,".jpeg", sep = ""))
+  #pp_right_path = file.path("~/SocKultExam/plots/pp_check/right/", paste("pp_right_plot_", unique_ID_right,".jpeg", sep = ""))
   
   #Defining priors
   prior =  c(
@@ -449,8 +454,8 @@ for (i in unique(right_data$unique_ID_right)){
   prior(normal(0,1), class = "b", coef = "dif_blue"))
   
   #Prior predictive check
-  prior_check <- brm( right_answer ~ dif_blue, prior = prior,
-           data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
+  #prior_check <- brm( right_answer ~ dif_blue, prior = prior,
+           #data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
 
  
   #Making the model
@@ -464,14 +469,14 @@ for (i in unique(right_data$unique_ID_right)){
   
   
   #trans plot
-  jpeg(file=trans_right_path)
-  print(plot(m))
-  dev.off()
+  #jpeg(file=trans_right_path)
+  #print(plot(m))
+  #dev.off()
 
   #pp_check plot
-  jpeg(file=pp_right_path)
-  print(pp_check(prior_check, nsamples = 100))
-  dev.off()
+  #jpeg(file=pp_right_path)
+  #print(pp_check(prior_check, nsamples = 100))
+  #dev.off()
   
   summary(m)
   
@@ -595,10 +600,98 @@ Results$joint_answer[Results$joint_answer == -1] <- 0
 
 
 
-#Create posterior predictive plots
-```{r}
+```{r combine results dataframes}
+#Combine all dataframes
+Results <- merge(Results_left, Results_right, by = c("GroupNumber", "Image_1"), all = TRUE)
+
+Results <- merge(Results, Results_joint, by = c("GroupNumber", "Image_1"), all = TRUE)
+
+write.csv(Results, file = "Results_sensitivity.csv")
 
 ```
+
+```{r equality bias}
+#create best and worst columns
+Results$best <- ifelse(Results$Est_dif_blue_left > Results$Est_dif_blue_right, Results$Est_dif_blue_left, Results$Est_dif_blue_right )
+
+
+Results$worst <- ifelse(Results$Est_dif_blue_left < Results$Est_dif_blue_right, Results$Est_dif_blue_left, Results$Est_dif_blue_right )
+
+#create equality bias column
+Results$eb <- Results$best/Results$worst
+```
+
+
+```{r collaborative benefit}
+#compute collabirative benefit
+Results$cb <- Results$Est_dif_blue_joint / Results$best 
+
+```
+
+
+```{r regression for difficulty}
+#regression for difficulty left 
+
+get_prior(Correct_left ~ dif_blue_abs, data = data)
+
+ prior =  c(
+  prior(normal(0,2), class = "Intercept"), #How to motiavte this?
+  prior(normal(0,2), class = "sigma"), #Roughly on the same scale
+  prior(normal(0,2), class = "b"), #How to motiavte this?
+  prior(normal(0,1), class = "b", coef = "dif_blue_abs"))
+  
+  #Prior predictive check
+  #prior_check <- brm( right_answer ~ dif_blue, prior = prior,
+           #data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
+
+#new column with abs for dif_blue
+data$dif_blue_abs <- abs(data$dif_blue)
+
+#LOGISTIC!!!!!! change it 
+
+#LEFT 
+  #Making the model
+dif_reg_left <- brm(
+    Correct_left ~ dif_blue_abs + (1|unique_ID_left),
+    data = data,
+    prior = prior,
+    family = "gaussian", #As we had a binary outcome, we set this to "bernoulli"
+    seed = 123 # Adding a seed makes results reproducible.
+    ) 
+
+summary(dif_reg_left)
+
+marginal_effects(dif_reg_left)
+
+#RIGHT
+dif_reg_right <- brm(
+    Correct_right ~ dif_blue_abs + (1|unique_ID_right),
+    data = data,
+    prior = prior,
+    family = "gaussian", #As we had a binary outcome, we set this to "bernoulli"
+    seed = 123 # Adding a seed makes results reproducible.
+    ) 
+
+summary(dif_reg_right)
+
+marginal_effects(dif_reg_right)
+
+
+#JOINT
+dif_reg_joint <- brm(
+    Correct_joint ~ dif_blue_abs + (1|GroupNumber),
+    data = data,
+    prior = prior,
+    family = "gaussian", #As we had a binary outcome, we set this to "bernoulli"
+    seed = 123 # Adding a seed makes results reproducible.
+    ) 
+
+summary(dif_reg_joint)
+
+marginal_effects(dif_reg_joint)
+
+```
+
 
 
 
@@ -626,3 +719,113 @@ L_data <- melt(Results,
 - calculate collaborative bias (joint/best)
 - Regression for difficulty 
 - write csv with results
+
+```{r}
+#take just the columns we need
+test_data <- subset(data, select = c(GroupNumber, unique_ID_left, unique_ID_right, dif_blue, left_answer, right_answer, joint_answer, Correct_left, Correct_right, Correct_joint, dif_blue_abs))
+
+
+#change to long format 
+
+L_data <- melt(test_data, 
+                     variable.name = "Position",
+                     value.name = "Subject",
+                     id.vars = c("GroupNumber", "dif_blue", "left_answer", "right_answer", "joint_answer", "Correct_left", "Correct_right", "Correct_joint", "dif_blue_abs"))
+```
+
+
+```{r}
+left <- subset(data, select = c(GroupNumber, unique_ID_left, dif_blue, left_answer, joint_answer, Correct_left, Correct_joint, dif_blue_abs))
+
+names(left) <- c("GroupNumber", "unique", "dif_blue", "answer", "joint_answer", "Correct", "Correct_joint", "dif_blue_abs")
+
+right <- subset(data, select = c(GroupNumber, unique_ID_right, dif_blue, right_answer, joint_answer, Correct_left, Correct_joint, dif_blue_abs))
+
+names(right) <- c("GroupNumber", "unique", "dif_blue", "answer", "joint_answer", "Correct", "Correct_joint", "dif_blue_abs")
+```
+
+
+```{r joint models }
+
+ldata <- rbind(left, right)
+
+get_prior(answer ~ dif_blue + GroupNumber, data = ldata)
+
+
+#Defining priors
+prior_joint =  c(
+  prior(normal(0,2), class = "Intercept"), 
+  prior(normal(0,2), class = "sigma"), #Why does this not work? 
+  prior(normal(0,2), class = "b"), 
+  prior(normal(0,1), class = "b", coef = "dif_blue"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber11"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber12"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber13"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber14"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber15"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber16"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber17"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber18"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber19"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber20"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber21"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber22"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber23"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber24"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber25"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber26"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber27"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber28"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber29"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber30"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber31"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber32"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber33"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber34"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber35"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber36"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber37"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber38"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber39"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber40"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber10"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber9"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber8"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber7"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber6"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber5"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber4"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber3"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber2"), 
+  prior(normal(0,1), class = "b", coef = "GroupNumber1")
+  
+ )
+
+#Joint model with answer
+m_joint_answer <- brm(
+  
+  joint_answer ~ dif_blue + GroupNumber,
+  data = ldata,
+  prior = prior_joint,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123 # Adding a seed makes results reproducible.
+  
+  ) 
+  
+summary(m_joint_answer)
+
+
+#Joint model with correct
+m_joint_correct <- brm(
+  
+  Correct_joint ~ dif_blue + GroupNumber,
+  data = ldata,
+  prior = prior_joint,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123 # Adding a seed makes results reproducible.
+  
+  ) 
+  
+summary(m_joint_correct)
+```
+
