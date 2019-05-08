@@ -113,7 +113,8 @@ data$unique_ID_right <- paste(data$GroupNumber, data$SubjectID_right, sep = "_")
 data$unique_ID_left <- paste(data$GroupNumber, data$SubjectID_left, sep = "_")
 
 #Making column, which expresses difficulty
-data$dif_blue <- data$Prop_blue_image_1-data$Prop_blue_image_2
+data$dif_blue <- data$Prop_blue_image_2 - data$Prop_blue_image_1
+data$dif_blue_abs <- abs(data$Prop_blue_image_2 - data$Prop_blue_image_1)
 
 #Making a column, which expresses answer of participants, 0 = left picture, 1 = right picture
 data$right_answer <- ifelse(data$Response_right > 0, 1, 0)
@@ -151,11 +152,6 @@ data$Follower_gender[data$chosen_leader == "Agree"] <- NA
 
 
 ```{r Did the leader stick?}
-
-#Hvorfor er de her? 
-#data$right_answer[data$right_answer == 0] <- -1
-#data$left_answer[data$left_answer == 0] <- -1
-
 
 #leader stubbornness
 data$Stubborn_leader <- 0 #Creating column of 0's
@@ -232,7 +228,7 @@ for (i in unique(data$unique_ID_left)){
   
 
  
-  #Making the model
+  #Making the model - using answer
   m <- brm(
     left_answer ~ dif_blue,
     data = data_i,
@@ -240,7 +236,19 @@ for (i in unique(data$unique_ID_left)){
     family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
     seed = 123 # Adding a seed makes results reproducible.
   ) 
+ 
   
+  #Making the model - using correctness
+  m_c <- brm(
+    Correct_left ~ dif_blue_abs,
+    data = data_i,
+    prior = prior,
+    family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+    seed = 123 # Adding a seed makes results reproducible.
+  ) 
+ 
+  
+   
   #Marginal effects plot: Plotted and saved
   jpeg(file=marginal_left_path)
   print(marginal_effects(m))
@@ -263,6 +271,10 @@ for (i in unique(data$unique_ID_left)){
   data_i$Error_int_left <- fixef(m)[3]
   data_i$Est_dif_blue_left <- fixef(m)[2]
   data_i$Error_dif_blue_left <- fixef(m)[4]
+  data_i$Est_int_left_correct <- fixef(m_c)[1]
+  data_i$Error_int_left_correct <- fixef(m_c)[3]
+  data_i$Est_dif_blue_left_correct <- fixef(m_c)[2]
+  data_i$Error_dif_blue_left_correct <- fixef(m_c)[4]
   data_i$Rhat_1_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[1]]
   data_i$Rhat_2_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[2]]
   data_i$Rhat_3_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[3]] #Why are there three? 
@@ -648,7 +660,7 @@ prior =  c(
 
 #Calculating performance difference
 
-INDSÆT DET SIGNE SKREV TIRSDAG
+INDS?T DET SIGNE SKREV TIRSDAG
 
 #Model
 ```{r}
