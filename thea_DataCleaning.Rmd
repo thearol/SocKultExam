@@ -183,10 +183,7 @@ ggplot(data = disagree_data, aes(Stubborn_leader, fill = Stubborn_leader)) +
 Bayesian tutorial on logistic regression: https://www.jamesrrae.com/post/bayesian-logistic-regression-using-brms-part-1/
 
 
-#Individual performance
-
-```{r logistic regression using wide format, individual left}
-
+```{r}
 ###LEFT
 #Making unique subjects
 data$unique_ID_right <- paste(data$GroupNumber, data$SubjectID_right, sep = "_")
@@ -212,18 +209,26 @@ ggplot(data = joint_data, aes(Correct_joint, fill = dif_blue)) +
   facet_grid(~dif_blue) +
   geom_histogram(stats = "count")
 
+# 
+# 
+# #path to save plots in 
+# #transition plots
+# 
+# trans_right_path = file.path("~/SocKultExam/plots/transition/right/", paste("trans_right_plot_", unique_ID_right,".jpeg", sep = ""))
+# trans_joint_path = file.path("~/SocKultExam/plots/transition/joint/", paste("trans_joint_plot_", GroupNumber, ".jpeg", sep = ""))
+# 
+# #pp_check plots 
+# 
+# pp_right_path = file.path("~/SocKultExam/plots/pp_check/right/", paste("pp_right_plot_", unique_ID_right,".jpeg", sep = ""))
+# pp_joint_path = file.path("~/SocKultExam/plots/pp_check/joint/", paste("pp_joint_plot_", GroupNumber, ".jpeg", sep = ""))
+# 
+```
 
 
-#path to save plots in 
-#transition plots
+#Individual performance
 
-trans_right_path = file.path("~/SocKultExam/plots/transition/right/", paste("trans_right_plot_", unique_ID_right,".jpeg", sep = ""))
-trans_joint_path = file.path("~/SocKultExam/plots/transition/joint/", paste("trans_joint_plot_", GroupNumber, ".jpeg", sep = ""))
+```{r logistic regression using wide format, individual left}
 
-#pp_check plots 
-
-pp_right_path = file.path("~/SocKultExam/plots/pp_check/right/", paste("pp_right_plot_", unique_ID_right,".jpeg", sep = ""))
-pp_joint_path = file.path("~/SocKultExam/plots/pp_check/joint/", paste("pp_joint_plot_", GroupNumber, ".jpeg", sep = ""))
 
 
 #Getting priors
@@ -235,10 +240,17 @@ n = 1
 ###Making a loop for individual slope
 for (i in unique(left_data$unique_ID_left)){
   data_i <- filter(left_data, unique_ID_left == i)
-  trans_left_path = file.path("~/SocKultExam/plots/transition/left/", paste("trans_left_plot_", i, ".jpeg", sep = ""))
-  #pp_left_path = file.path("~/SocKultExam/plots/pp_check/left/", paste("pp_left_plot_",i, ".jpeg", sep = ""))
+    
+  #path for transsion plot
+  trans_left_path = file.path("~/SocKultExam/plots/transition/left/", paste("trans_left_plot_", i,".jpeg", sep = ""))
   
-  #Defining priors
+  #path for pp_check
+  pp_left_path = file.path("~/SocKultExam/plots/pp_check/left/", paste("pp_left_plot_", i,".jpeg", sep = ""))
+  
+  #path for marginal
+  marginal_left_path = file.path("~/SocKultExam/plots/marginal/left/", paste("marginal_left_plot_", i,".jpeg", sep = ""))
+ 
+   #Defining priors
   prior =  c(
   prior(normal(0,2), class = "Intercept"), #How to motiavte this?
   #prior(normal(0,2), class = "sigma"), #Roughly on the same scale
@@ -249,10 +261,10 @@ for (i in unique(left_data$unique_ID_left)){
   prior_check <- brm( left_answer ~ dif_blue, prior = prior,
            data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
   
-  # #pp_check plot
-  # jpeg(file=pp_left_path)
-  # pp_check(prior_check, nsamples = 100)
-  # dev.off()
+  #pp_check plot
+  jpeg(file=pp_left_path)
+  print(pp_check(prior_check, nsamples = 100))
+  dev.off()
  
   #Making the model
   m <- brm(
@@ -262,16 +274,15 @@ for (i in unique(left_data$unique_ID_left)){
     family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
     seed = 123 # Adding a seed makes results reproducible.
   ) 
-  # 
-
-  jpeg(file=trans_left_path)
-  marginal_effects(m)
+  #marginal plot
+  jpeg(file=marginal_left_path)
+  print(marginal_effects(m))
   dev.off()
   
-    # #trans plot
-  # jpeg(file=trans_left_path)
-  # plot(m)
-  # dev.off()
+  #trans plot
+  jpeg(file=trans_left_path)
+  print(plot(m))
+  dev.off()
 
 
   summary(m)
@@ -290,79 +301,80 @@ for (i in unique(left_data$unique_ID_left)){
   
   #Insert into permanent data frame
   if (n == 1){
-    Results <- data_i
+    Results_left <- data_i
   } else {
-    Results <- rbind(Results, data_i)
+    Results_left <- rbind(Results_left, data_i)
   }
   
 n = n + 1
   
 }
 
+
 ```
 
 ```{r}
-
-data_i <- filter(data, unique_ID_right == "10_simonmoller")
-
-trans_left_path = file.path("~/SocKultExam/plots/transition/left/", paste("trans_left_plot_", ".jpeg", sep = ""))
-trans_right_path = file.path("~/SocKultExam/plots/transition/right/", paste("trans_right_plot_", ".jpeg", sep = ""))
-trans_joint_path = file.path("~/SocKultExam/plots/transition/joint/", paste("trans_joint_plot_", ".jpeg", sep = ""))
-
-pp_left_path = file.path("~/SocKultExam/plots/pp_check/left/", paste("pp_left_plot_", ".jpeg", sep = ""))
-pp_right_path = file.path("~/SocKultExam/plots/pp_check/right/", paste("pp_right_plot_", ".jpeg", sep = ""))
-pp_joint_path = file.path("~/SocKultExam/plots/pp_check/joint/", paste("pp_joint_plot_", ".jpeg", sep = ""))
-
-#Defining priors
-prior =  c(
-prior(normal(0,2), class = "Intercept"), #How to motiavte this?
-#prior(normal(0,2), class = "sigma"), #Roughly on the same scale
-prior(normal(0,2), class = "b"), #How to motiavte this?
-prior(normal(0,1), class = "b", coef = "dif_blue"))
-  
-  #Prior predictive check
-prior_check <- brm( left_answer ~ dif_blue, prior = prior,
-         data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
-
-
-
- 
-  #Making the model
-m <- brm(
-  left_answer ~ dif_blue,
-  data = data_i,
-  prior = prior,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-  seed = 123 # Adding a seed makes results reproducible.
-) 
-  
-summary(m)
-jpeg(file=pp_left_path)
-marginal_effects(m)
-dev.off()
-
-#trans plot
-jpeg(file=pp_left_path)
-plot(m)
-dev.off()
-
-#pp_check plot
-jpeg(file=pp_left_path)
-pp_check(prior_check, nsamples = 100)
-dev.off()
-
-data_i$Est_int_left <- fixef(m)[1]
-data_i$Error_int_left <- fixef(m)[3]
-data_i$Est_dif_blue_left <- fixef(m)[2]
-data_i$Error_dif_blue_left <- fixef(m)[4]
-data_i$Rhat_1_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[1]]
-data_i$Rhat_2_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[2]]
-data_i$Rhat_3_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[3]]
-data_i$Ess_1_left <- m[["fit"]]@.MISC[["summary"]][["ess"]][[1]]
-data_i$Ess_2_left <- m[["fit"]]@.MISC[["summary"]][["ess"]][[2]]
-data_i$Ess_3_left <- m[["fit"]]@.MISC[["summary"]][["ess"]][[3]]
-
-
+# 
+# data_i <- filter(data, unique_ID_right == "10_simonmoller")
+# 
+# trans_left_path = file.path("~/SocKultExam/plots/transition/left/", paste("trans_left_plot_", ".jpeg", sep = ""))
+# trans_right_path = file.path("~/SocKultExam/plots/transition/right/", paste("trans_right_plot_", ".jpeg", sep = ""))
+# trans_joint_path = file.path("~/SocKultExam/plots/transition/joint/", paste("trans_joint_plot_", ".jpeg", sep = ""))
+# 
+# pp_left_path = file.path("~/SocKultExam/plots/pp_check/left/", paste("pp_left_plot_", ".jpeg", sep = ""))
+# pp_right_path = file.path("~/SocKultExam/plots/pp_check/right/", paste("pp_right_plot_", ".jpeg", sep = ""))
+# pp_joint_path = file.path("~/SocKultExam/plots/pp_check/joint/", paste("pp_joint_plot_", ".jpeg", sep = ""))
+# 
+# #Defining priors
+# prior =  c(
+# prior(normal(0,2), class = "Intercept"), #How to motiavte this?
+# #prior(normal(0,2), class = "sigma"), #Roughly on the same scale
+# prior(normal(0,2), class = "b"), #How to motiavte this?
+# prior(normal(0,1), class = "b", coef = "dif_blue"))
+#   
+#   #Prior predictive check
+# prior_check <- brm( left_answer ~ dif_blue, prior = prior,
+#          data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
+# 
+# 
+# 
+#  
+#   #Making the model
+# m <- brm(
+#   left_answer ~ dif_blue,
+#   data = data_i,
+#   prior = prior,
+#   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+#   seed = 123 # Adding a seed makes results reproducible.
+# ) 
+#   
+# summary(m)
+# jpeg(file=pp_left_path)
+# marginal_effects(m)
+# dev.off()
+# 
+# #trans plot
+# jpeg(file=pp_left_path)
+# plot(m)
+# dev.off()
+# 
+# #pp_check plot
+# jpeg(file=pp_left_path)
+# pp_check(prior_check, nsamples = 100)
+# dev.off()
+# 
+# data_i$Est_int_left <- fixef(m)[1]
+# data_i$Error_int_left <- fixef(m)[3]
+# data_i$Est_dif_blue_left <- fixef(m)[2]
+# data_i$Error_dif_blue_left <- fixef(m)[4]
+# data_i$Rhat_1_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[1]]
+# data_i$Rhat_2_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[2]]
+# data_i$Rhat_3_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[3]]
+# data_i$Ess_1_left <- m[["fit"]]@.MISC[["summary"]][["ess"]][[1]]
+# data_i$Ess_2_left <- m[["fit"]]@.MISC[["summary"]][["ess"]][[2]]
+# data_i$Ess_3_left <- m[["fit"]]@.MISC[["summary"]][["ess"]][[3]]
+# 
+# 
 
 ```
 
@@ -375,8 +387,17 @@ n = 1
 
 ###Making a loop for individual slope
 for (i in unique(right_data$unique_ID_right)){
-  data_i <- filter(Results, unique_ID_right == i)
+  data_i <- filter(right_data, unique_ID_right == i)
   
+    #path for transsion plot
+  trans_right_path = file.path("~/SocKultExam/plots/transition/right/", paste("trans_right_plot_", i,".jpeg", sep = ""))
+  
+  #path for pp_check
+  pp_right_path = file.path("~/SocKultExam/plots/pp_check/right/", paste("pp_right_plot_", i,".jpeg", sep = ""))
+  
+  #path for marginal
+  marginal_right_path = file.path("~/SocKultExam/plots/marginal/right/", paste("marginal_right_plot_", i,".jpeg", sep = ""))
+
   #Defining priors
   prior =  c(
   prior(normal(0,2), class = "Intercept"), #How to motiavte this?
@@ -388,6 +409,11 @@ for (i in unique(right_data$unique_ID_right)){
   prior_check <- brm( right_answer ~ dif_blue, prior = prior,
            data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
 
+    
+  #pp_check plot
+  jpeg(file=pp_right_path)
+  print(pp_check(prior_check, nsamples = 100))
+  dev.off()
  
   #Making the model
   m <- brm(
@@ -401,13 +427,14 @@ for (i in unique(right_data$unique_ID_right)){
   
   #trans plot
   jpeg(file=trans_right_path)
-  plot(m)
+  print(plot(m))
   dev.off()
 
-  #pp_check plot
-  jpeg(file=pp_right_path)
-  pp_check(prior_check, nsamples = 100)
+  #marginal plot
+  jpeg(file=marginal_right_path)
+  print(marginal_effects(m))
   dev.off()
+
   
   summary(m)
   
@@ -426,14 +453,15 @@ for (i in unique(right_data$unique_ID_right)){
   
   #Insert into permanent data frame
   if (n == 1){
-    Results <- data_i
+    Results_right <- data_i
   } else {
-    Results <- rbind(Results, data_i)
+    Results_right <- rbind(Results_right, data_i)
   }
   
 n = n + 1
   
 }
+
 
 
 ```
@@ -451,7 +479,17 @@ n = 1
 
 ###Making a loop for individual slope
 for (i in unique(joint_data$GroupNumber)){
-  data_i <- filter(Results, GroupNumber == i)
+  data_i <- filter(joint_data, GroupNumber == i)
+  
+      #path for transission plot
+  trans_joint_path = file.path("~/SocKultExam/plots/transition/joint/", paste("trans_joint_plot_", i, ".jpeg", sep = ""))
+  
+  #path for pp_check plot
+  pp_joint_path = file.path("~/SocKultExam/plots/pp_check/joint/", paste("pp_joint_plot_", i, ".jpeg", sep = ""))
+  
+    #path for marginal
+  marginal_joint_path = file.path("~/SocKultExam/plots/marginal/joint/", paste("marginal_joint_plot_", i,".jpeg", sep = ""))
+  
   
   #Defining priors
   prior =  c(
@@ -464,6 +502,10 @@ for (i in unique(joint_data$GroupNumber)){
   prior_check <- brm( joint_answer ~ dif_blue, prior = prior,
            data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
 
+    #pp_check plot
+  jpeg(file=pp_joint_path)
+  print(pp_check(prior_check, nsamples = 100))
+  dev.off()
  
   #Making the model
   m <- brm(
@@ -476,12 +518,12 @@ for (i in unique(joint_data$GroupNumber)){
 
   #trans plot
   jpeg(file=trans_joint_path)
-  plot(m)
+  print(plot(m))
   dev.off()
 
-  #pp_check plot
-  jpeg(file=pp_joint_path)
-  pp_check(prior_check, nsamples = 100)
+  #marginal plot
+  jpeg(file=marginal_joint_path)
+  print(marginal_effects(m))
   dev.off()
   
   summary(m)
@@ -500,14 +542,19 @@ for (i in unique(joint_data$GroupNumber)){
   
   #Insert into permanent data frame
   if (n == 1){
-    Results <- data_i
+    Results_joint <- data_i
   } else {
-    Results <- rbind(Results, data_i)
+    Results_joint <- rbind(Results_joint, data_i)
   }
   
 n = n + 1
   
 }
+
+#Recoding joint answer to be 0 and 1's, 0 right, 1 left, NA = no leader
+Results$joint_answer[Results$joint_answer == 0] <- NA #Replacing 0's with NA
+Results$joint_answer[Results$joint_answer == -1] <- 0
+
 
 
 #The outcome is in log odds scale, we can use tidybayes to transform them 
