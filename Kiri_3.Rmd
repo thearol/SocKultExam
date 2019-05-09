@@ -594,17 +594,18 @@ A consideration: Should we allow different slopes for the same participant in di
 
 OBS: Needs discussion
 - When saving the betas, we do not want the main effect of difficulty, can we just add that to the beta for the individual slope? 
+
+
 - I think not, since it is in the scale of log odds. This is probably, what Riccardo is talking about. 
 
 ```{r creating model with partial pooling, individual}
 
 #Getting priors
-get_prior(answer ~ dif_blue:unique, data = ldata)
+get_prior(answer ~ dif_blue + (1+ dif_blue|unique), data = ldata)
 
 #Defining priors
 prior =  c(
   prior(normal(0,2), class = "Intercept"), 
-  #prior(normal(0,2), class = "sigma"), #Why does this not work? 
   prior(normal(0,2), class = "b"),
   prior(normal(0,2), class = "b", coef = "dif_blue"),
   prior(normal(0,2), class = "b", coef = "unique1_Oliver"),
@@ -689,11 +690,11 @@ prior =  c(
 )
   
 #Prior predictive check - for answer
-  prior_check <- brm( answer ~ dif_blue + unique, prior = prior,
+  prior_check <- brm( answer ~ dif_blue + (dif_blue|unique), prior = prior,
            data = ldata, sample_prior = "only",iter = 4000, family = "bernoulli")
 
 #Prior predictive check - for correct
-  prior_check_c <- brm(Correct ~ dif_blue_abs + unique, prior = prior,
+  prior_check_c <- brm(Correct ~ 0 + dif_blue_abs + (0 +dif_blue|unique), prior = prior,
            data = ldata, sample_prior = "only",iter = 4000, family = "bernoulli")
 
 #Making the model - using answer
@@ -714,6 +715,8 @@ prior =  c(
     seed = 123 # Adding a seed makes results reproducible.
   ) 
 
+  
+  
   
   #Saving summary in temporary dataframe
   betas <- data.frame(m$prior[1:81, 3])
