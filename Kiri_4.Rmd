@@ -577,6 +577,9 @@ right <- subset(data, select = c(GroupNumber, unique_ID_right, dif_blue, right_a
 #Chainging names
 names(right) <- c("GroupNumber", "unique", "dif_blue", "answer", "joint_answer", "Correct", "Correct_joint", "dif_blue_abs")
 
+#Removing half the joint data to inform the model, there is only one. 
+right$Correct_joint <- NA
+right$joint_answer <- NA
 
 #Joining the dataframes
 ldata <- rbind(left, right)
@@ -601,146 +604,68 @@ OBS: Needs discussion
 ```{r creating model with partial pooling, individual}
 
 #Getting priors
-get_prior(answer ~ dif_blue + (1+ dif_blue|unique), data = ldata)
+get_prior(answer ~ dif_blue + (1+ dif_blue|unique), family = "bernoulli", data = ldata)
+get_prior(Correct ~ 0 + dif_blue + (0+ dif_blue|unique), family = "bernoulli", data = ldata)
 
 #Defining priors
-prior =  c(
-  prior(normal(0,2), class = "Intercept"), 
-  prior(normal(0,2), class = "b"),
-  prior(normal(0,2), class = "b", coef = "dif_blue"),
-  prior(normal(0,2), class = "b", coef = "unique1_Oliver"),
-  prior(normal(0,2), class = "b", coef = "unique10_andersweile"),
-  prior(normal(0,2), class = "b", coef = "unique10_simonmoller"),
-  prior(normal(0,2), class = "b", coef = "unique11_andersweile"),
-  prior(normal(0,2), class = "b", coef = "unique11_Matilde"),
-  prior(normal(0,2), class = "b", coef = "unique12_simonmoller"),
-  prior(normal(0,2), class = "b", coef = "unique12_Telma"),
-  prior(normal(0,2), class = "b", coef = "unique13_Malte"),
-  prior(normal(0,2), class = "b", coef = "unique13_Sara"),
-  prior(normal(0,2), class = "b", coef = "unique14_kenneth"),
-  prior(normal(0,2), class = "b", coef = "unique14_signekirk"),
-  prior(normal(0,2), class = "b", coef = "unique15_kenneth"),
-  prior(normal(0,2), class = "b", coef = "unique15_Malte"),
-  prior(normal(0,2), class = "b", coef = "unique16_Sara"),
-  prior(normal(0,2), class = "b", coef = "unique16_signekirk"),
-  prior(normal(0,2), class = "b", coef = "unique17_Fred"),
-  prior(normal(0,2), class = "b", coef = "unique17_seb"),
-  prior(normal(0,2), class = "b", coef = "unique18_Ida"),
-  prior(normal(0,2), class = "b", coef = "unique18_SigneR"),
-  prior(normal(0,2), class = "b", coef = "unique19_seb"),
-  prior(normal(0,2), class = "b", coef = "unique19_SigneR"),
-  prior(normal(0,2), class = "b", coef = "unique2_Britta"),
-  prior(normal(0,2), class = "b", coef = "unique2_Oliver"),
-  prior(normal(0,2), class = "b", coef = "unique20_Fred"),
-  prior(normal(0,2), class = "b", coef = "unique20_Ida"),
-  prior(normal(0,2), class = "b", coef = "unique21_laura"),
-  prior(normal(0,2), class = "b", coef = "unique21_Toby"),
-  prior(normal(0,2), class = "b", coef = "unique22_Karoline"),
-  prior(normal(0,2), class = "b", coef = "unique23_Karoline"),
-  prior(normal(0,2), class = "b", coef = "unique23_laura"),
-  prior(normal(0,2), class = "b", coef = "unique24_Lasse"),
-  prior(normal(0,2), class = "b", coef = "unique22_Lasse"),
-  prior(normal(0,2), class = "b", coef = "unique24_Toby"),
-  prior(normal(0,2), class = "b", coef = "unique25_Amalie"),
-  prior(normal(0,2), class = "b", coef = "unique26_Simon"),
-  prior(normal(0,2), class = "b", coef = "unique27_Esben"),
-  prior(normal(0,2), class = "b", coef = "unique27_Simon"),
-  prior(normal(0,2), class = "b", coef = "unique25_Esben"),
-  prior(normal(0,2), class = "b", coef = "unique26_Astrid"),
-  prior(normal(0,2), class = "b", coef = "unique28_Amalie"),
-  prior(normal(0,2), class = "b", coef = "unique28_Astrid"),
-  prior(normal(0,2), class = "b", coef = "unique29_Emma"),
-  prior(normal(0,2), class = "b", coef = "unique29_Theasmom"),
-  prior(normal(0,2), class = "b", coef = "unique3_Britta"),
-  prior(normal(0,2), class = "b", coef = "unique3_Katrine"),
-  prior(normal(0,2), class = "b", coef = "unique30_Jan"),
-  prior(normal(0,2), class = "b", coef = "unique30_John"),
-  prior(normal(0,2), class = "b", coef = "unique31_Emma"),
-  prior(normal(0,2), class = "b", coef = "unique32_John"),
-  prior(normal(0,2), class = "b", coef = "unique32_Theasmom"),
-  prior(normal(0,2), class = "b", coef = "unique31_Jan"),
-  prior(normal(0,2), class = "b", coef = "unique33_Ane"),
-  prior(normal(0,2), class = "b", coef = "unique33_Laurits"),
-  prior(normal(0,2), class = "b", coef = "unique34_Magnus"),
-  prior(normal(0,2), class = "b", coef = "unique34_Nanna"),
-  prior(normal(0,2), class = "b", coef = "unique35_Laurits"),
-  prior(normal(0,2), class = "b", coef = "unique35_Magnus"),
-  prior(normal(0,2), class = "b", coef = "unique36_Ane"),
-  prior(normal(0,2), class = "b", coef = "unique36_Nanna"),
-  prior(normal(0,2), class = "b", coef = "unique37_andersh"),
-  prior(normal(0,2), class = "b", coef = "unique37_larsk"),
-  prior(normal(0,2), class = "b", coef = "unique38_annas"),
-  prior(normal(0,2), class = "b", coef = "unique38_anneed"),
-  prior(normal(0,2), class = "b", coef = "unique39_annas"),
-  prior(normal(0,2), class = "b", coef = "unique39_larsk"),
-  prior(normal(0,2), class = "b", coef = "unique4_Katrine"),
-  prior(normal(0,2), class = "b", coef = "unique4_Michael"),
-  prior(normal(0,2), class = "b", coef = "unique40_andersh"),
-  prior(normal(0,2), class = "b", coef = "unique40_anneed"),
-  prior(normal(0,2), class = "b", coef = "unique5_mikkel"),
-  prior(normal(0,2), class = "b", coef = "unique5_stephanie"),
-  prior(normal(0,2), class = "b", coef = "unique6_emil"),
-  prior(normal(0,2), class = "b", coef = "unique6_nina"),
-  prior(normal(0,2), class = "b", coef = "unique7_nina"),
-  prior(normal(0,2), class = "b", coef = "unique7_stephanie"),
-  prior(normal(0,2), class = "b", coef = "unique8_emil"),
-  prior(normal(0,2), class = "b", coef = "unique8_mikkel"),
-  prior(normal(0,2), class = "b", coef = "unique9_Matilde"),
-  prior(normal(0,2), class = "b", coef = "unique9_Telma")
+prior_answer =  c(
+  prior(normal(0,0.125), class = "b", coef = "dif_blue"),
+  prior(normal(0.5,0.17), class = "Intercept"),
+  prior(normal(0,0.125), class = "sd", coef = "dif_blue", group = "unique"),
+  prior(normal(0.5,0.17), class = "sd", coef = "Intercept", group = "unique")
 )
-  
+
+prior_correct =  c(
+  prior(normal(0,0.25), class = "b", coef = "dif_blue_abs"),
+  prior(normal(0,0.25), class = "sd", coef = "dif_blue_abs", group = "unique")
+)
+
+
 #Prior predictive check - for answer
-  prior_check <- brm( answer ~ dif_blue + (dif_blue|unique), prior = prior,
+prior_check <- brm( answer ~ dif_blue + (dif_blue|unique), prior = prior_answer,
            data = ldata, sample_prior = "only",iter = 4000, family = "bernoulli")
 
 #Prior predictive check - for correct
-  prior_check_c <- brm(Correct ~ 0 + dif_blue_abs + (0 +dif_blue|unique), prior = prior,
+prior_check_c <- brm(Correct ~  0 + dif_blue_abs + (0 +dif_blue_abs|unique), prior = prior_correct,
            data = ldata, sample_prior = "only",iter = 4000, family = "bernoulli")
 
 #Making the model - using answer
   m_p <- brm(
-    answer ~ dif_blue + unique,
+    answer ~ dif_blue + (1+dif_blue|unique),
     data = ldata,
-    prior = prior,
+    prior = prior_answer,
     family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
     seed = 123 # Adding a seed makes results reproducible.
   ) 
   
 #Making the model - using correct
   m_p_c <- brm(
-    Correct ~ dif_blue_abs + unique,
+    Correct ~ 0 +dif_blue_abs + (0+dif_blue_abs|unique),
     data = ldata,
-    prior = prior,
+    prior = prior_correct,
     family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
     seed = 123 # Adding a seed makes results reproducible.
   ) 
 
-  
-  
-  
+###CHECK IF THIS WORKS
+#Saving the estimates
   #Saving summary in temporary dataframe
   betas <- data.frame(m$prior[1:81, 3])
-  
   #Removing unique from the string
-  betas$m.prior.1.81..3. <- str_remove(betas$prior_check.prior.1.81..3., "unique")
-  
+  betas$m.prior.1.81..3. <- str_remove(betas$m.prior.1.81..3., "unique")
   #Insert betas in dataframe
-  betas$Est_individual_p_answer <- fixef(m_p)[1:81]
-  betas$Est_idividual_p_correct <- fixef(m_p_c)[1:81]
+  betas$Est_individual_p_answer <- fixef(m_p)[1:81] + ranef(m_p)[1:81]
+  betas$Est_idividual_p_correct <- fixef(m_p_c)[1:81] + ranef(m_p)[1:81]
   
-  #Insert the Intercept
-  #betas$str_remove.betas...unique..[1,] <-  "Intercept"
-  
-  #Renaming column names
+#Merging with betas with results
+  #Renaming column names to right
   names(betas) <- c("unique_ID_right", "Est_individual_p_right", "Est_idividual_p_correct_right")
   
   #Merge the betas with the results dataframe for right individual
   Results<- left_join(Results, betas, by = "unique_ID_right")
-  
-  
-  #Renaming column names
+
+  #Renaming column names to the left
   names(betas) <- c("unique_ID_left", "Est_individual_p_left", "Est_idividual_p_correct_left")
-  
   
   #Merge the betas with the results dataframe
   Results <- left_join(Results, betas, by = "unique_ID_left")
@@ -749,62 +674,38 @@ prior =  c(
 ```
 
 ```{r creating model with partial pooling, joint}
-get_prior(answer ~ dif_blue + GroupNumber, data = ldata)
+get_prior(joint_answer ~ dif_blue + (1 + dif_blue|GroupNumber), family = "bernoulli", data = ldata)
+get_prior(Correct_joint ~ dif_blue_abs + (0 + dif_blue|GroupNumber), family = "bernoulli", data = ldata)
 
 #Defining priors
-prior_joint =  c(
-  prior(normal(0,2), class = "Intercept"), 
-  prior(normal(0,2), class = "sigma"), #Why does this not work? 
-  prior(normal(0,2), class = "b"), 
-  prior(normal(0,1), class = "b", coef = "dif_blue"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber11"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber12"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber13"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber14"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber15"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber16"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber17"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber18"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber19"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber20"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber21"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber22"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber23"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber24"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber25"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber26"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber27"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber28"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber29"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber30"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber31"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber32"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber33"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber34"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber35"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber36"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber37"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber38"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber39"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber40"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber10"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber9"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber8"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber7"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber6"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber5"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber4"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber3"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber2"), 
-  prior(normal(0,1), class = "b", coef = "GroupNumber1")
+prior_answer =  c(
+  prior(normal(0,0.125), class = "b", coef = "dif_blue"),
+  prior(normal(0.5,0.17), class = "Intercept"),
+  prior(normal(0,0.125), class = "sd", coef = "dif_blue", group = "GroupNumber"),
+  prior(normal(0.5,0.17), class = "sd", coef = "Intercept", group = "GroupNumber")
+)
+
+prior_correct =  c(
+  prior(normal(0,0.25), class = "b", coef = "dif_blue_abs"),
+  prior(normal(0,0.25), class = "sd", coef = "dif_blue_abs", group = "GroupNumber")
+)
+
+
   
- )
+#Prior predictive check - for answer
+prior_check <- brm(joint_answer ~ dif_blue + (dif_blue|GroupNumber), prior = prior_answer_joint,
+           data = ldata, sample_prior = "only",iter = 4000, family = "bernoulli")
+
+#Prior predictive check - for correct
+prior_check_c <- brm(Correct_joint ~  0 + dif_blue_abs + (0 +dif_blue_abs|GroupNumber), prior = prior_correct_joint,
+           data = ldata, sample_prior = "only",iter = 4000, family = "bernoulli")
+
 
 #Joint model with answer
 m_joint_answer <- brm(
-  joint_answer ~ dif_blue + GroupNumber,
+  joint_answer ~ dif_blue + (1 + dif_blue|GroupNumber),
   data = ldata,
-  prior = prior_joint,
+  prior = prior_answer_joint,
   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123 # Adding a seed makes results reproducible.
   ) 
@@ -813,16 +714,39 @@ summary(m_joint_answer)
 
 #Joint model with correct
 m_joint_correct <- brm(
-  Correct_joint ~ dif_blue + GroupNumber,
+  Correct_joint ~ 0 + dif_blue_abs + (0+dif_blue_abs|GroupNumber),
   data = ldata,
-  prior = prior_joint,
+  prior = prior_correct_joint,
   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123 # Adding a seed makes results reproducible.
   
   ) 
 summary(m_joint_correct)
 
-#Saving the estimates in the results dataframe
+###CHECK OM DET HER VIRKER
+#Saving the estimates
+  #Saving summary in temporary dataframe
+  betas <- data.frame(m_joint_answer$prior[1:?, 3])
+  #Removing unique from the string
+  betas$m.prior.1.81..3. <- str_remove(betas$prior_check.prior.1.?..3., "unique")
+  #Insert betas in dataframe
+  betas$Est_individual_p_answer <- fixef(m_p)[1:?] + ranef(m_p)[1:81]
+  betas$Est_idividual_p_correct <- fixef(m_p_c)[1:81] + ranef(m_p)[1:81]
+  
+#Merging with betas with results
+  #Renaming column names to right
+  names(betas) <- c("unique_ID_right", "Est_individual_p_right", "Est_idividual_p_correct_right")
+  
+  #Merge the betas with the results dataframe for right individual
+  Results<- left_join(Results, betas, by = "unique_ID_right")
+
+  #Renaming column names to the left
+  names(betas) <- c("unique_ID_left", "Est_individual_p_left", "Est_idividual_p_correct_left")
+  
+  #Merge the betas with the results dataframe
+  Results <- left_join(Results, betas, by = "unique_ID_left")
+  
+
 ```
 
 #Calculating performance difference
