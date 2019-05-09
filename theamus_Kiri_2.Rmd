@@ -21,9 +21,11 @@ p_load(plotly, jpeg)
 ```{r loading data and merging, include = FALSE}
 
 #Defining path
-data_path = ("~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam/Data/") #Kiri
+#data_path = ("~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam/Data/") #Kiri
 
-#data_path = ("~/Data") #Thea
+setwd("~/SocKultExam")
+data_path = ("Data/") #Thea
+
 
 #Listing files in path
 files <- list.files(path = data_path)
@@ -40,8 +42,8 @@ for (i in files) {
 #Kiris data
 
 #Setting different path for extraordinary files
-#kiri_path = ("~/SocKultExam/") #Thea
-kiri_path = ("~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam/")#Kiri
+kiri_path = ("~/SocKultExam/") #Thea
+#kiri_path = ("~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam/")#Kiri
 kiri_files <- list.files(path = kiri_path, pattern = "*.csv") #Listing files in directory
 
 kiri_data <- data.frame(matrix(ncol = 35, nrow = 0))#Creating empty data frame for Kiri data
@@ -201,7 +203,8 @@ Bayesian tutorial on logistic regression: https://www.jamesrrae.com/post/bayesia
 ###LEFT
 
 #Getting priors
-get_prior(left_answer ~ dif_blue, data = data)
+get_prior(left_answer ~ dif_blue, data = data, family = "bernoulli")
+get_prior(Correct_left ~ dif_blue_abs, data = data, family = "bernoulli")
 
 #Making a number of iterations variable
 n = 1
@@ -214,19 +217,32 @@ for (i in unique(data$unique_ID_left)){
   trans_left_path = file.path("~/SocKultExam/plots/transition/left/", paste("trans_left_plot_", i, ".jpeg", sep = ""))
   pp_left_path = file.path("~/SocKultExam/plots/pp_check/left/", paste("pp_left_plot_",i, ".jpeg", sep = ""))
   marginal_left_path = file.path("~/SocKultExam/plots/marginal/left/", paste("marginal_left_plot_", i, ".jpeg", sep = ""))
+  #...and for correct
+  correct_trans_left_path = file.path("~/SocKultExam/plots/correct_transition/left/", paste("correct_trans_left_plot_", i, ".jpeg", sep = ""))
+  correct_pp_left_path = file.path("~/SocKultExam/plots/correct_pp_check/left/", paste("correct_pp_left_plot_",i, ".jpeg", sep = ""))
+  correct_marginal_left_path = file.path("~/SocKultExam/plots/correct_marginal/left/", paste("correct_marginal_left_plot_", i, ".jpeg", sep = ""))
   
   #Defining priors
   prior =  c(
-  prior(normal(0,2), class = "Intercept"), 
-  #prior(normal(0,2), class = "sigma"), #Why does this not work? 
+  prior(normal(0,2), class = "Intercept"),  #Why does this not work? 
   prior(normal(0,2), class = "b"), 
-  prior(normal(0,1), class = "b", coef = "dif_blue"))
+  prior(normal(0,1), class = "b", coef = "dif_blue")
+  )
+  
+  #...and for correct
+  correct_prior =  c(
+  prior(normal(0,2), class = "Intercept"), #Why does this not work? 
+  prior(normal(0,2), class = "b"), 
+  prior(normal(0,1), class = "b", coef = "dif_blue_abs")
+  )
   
   #Prior predictive check
   prior_check <- brm( left_answer ~ dif_blue, prior = prior,
            data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
   
-
+    #Prior predictive check
+  correct_prior_check <- brm( Correct_left ~ 0 + dif_blue_abs, prior = correct_prior,
+           data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
  
   #Making the model - using answer
   m <- brm(
@@ -240,9 +256,9 @@ for (i in unique(data$unique_ID_left)){
   
   #Making the model - using correctness
   m_c <- brm(
-    Correct_left ~ dif_blue_abs,
+    Correct_left ~ 0 + dif_blue_abs,
     data = data_i,
-    prior = prior,
+    prior = correct_prior,
     family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
     seed = 123 # Adding a seed makes results reproducible.
   ) 
@@ -255,16 +271,34 @@ for (i in unique(data$unique_ID_left)){
   dev.off()
   
   #Transition plot: plotted and saved
-   jpeg(file=trans_left_path)
-   print(plot(m))
-   dev.off()
+  jpeg(file=trans_left_path)
+  print(plot(m))
+  dev.off()
 
   #pp_check plot: Plotted and saved
-   jpeg(file=pp_left_path)
-   print(pp_check(prior_check, nsamples = 100))
-   dev.off()
+  jpeg(file=pp_left_path)
+  print(pp_check(prior_check, nsamples = 100))
+  dev.off()
   
-   summary(m)
+  #model with correct
+   
+  #Marginal effects plot: Plotted and saved
+  jpeg(file=correct_marginal_left_path)
+  print(marginal_effects(m_c))
+  dev.off()
+  
+  #Transition plot: plotted and saved
+  jpeg(file=correct_trans_left_path)
+  print(plot(m_c))
+  dev.off()
+
+  #pp_check plot: Plotted and saved
+  jpeg(file=correct_pp_left_path)
+  print(pp_check(correct_prior_check, nsamples = 100))
+  dev.off()
+   
+  summary(m)
+  summary(m_c)
   
   #Saving summary in temporary dataframe
   data_i$Est_int_left <- fixef(m)[1]
@@ -293,71 +327,6 @@ for (i in unique(data$unique_ID_left)){
 n = n + 1
   
 }
-
-```
-
-```{r skal slettes}
-
-data_i <- filter(data, unique_ID_right == "10_simonmoller")
-
-trans_left_path = file.path("~/SocKultExam/plots/transition/left/", paste("trans_left_plot_", ".jpeg", sep = ""))
-trans_right_path = file.path("~/SocKultExam/plots/transition/right/", paste("trans_right_plot_", ".jpeg", sep = ""))
-trans_joint_path = file.path("~/SocKultExam/plots/transition/joint/", paste("trans_joint_plot_", ".jpeg", sep = ""))
-
-pp_left_path = file.path("~/SocKultExam/plots/pp_check/left/", paste("pp_left_plot_", ".jpeg", sep = ""))
-pp_right_path = file.path("~/SocKultExam/plots/pp_check/right/", paste("pp_right_plot_", ".jpeg", sep = ""))
-pp_joint_path = file.path("~/SocKultExam/plots/pp_check/joint/", paste("pp_joint_plot_", ".jpeg", sep = ""))
-
-#Defining priors
-prior =  c(
-prior(normal(0,2), class = "Intercept"), #How to motiavte this?
-#prior(normal(0,2), class = "sigma"), #Roughly on the same scale
-prior(normal(0,2), class = "b"), #How to motiavte this?
-prior(normal(0,1), class = "b", coef = "dif_blue"))
-  
-  #Prior predictive check
-prior_check <- brm( left_answer ~ dif_blue, prior = prior,
-         data = data_i, sample_prior = "only",iter = 4000, family = "bernoulli")
-
-
-
- 
-  #Making the model
-m <- brm(
-  left_answer ~ dif_blue,
-  data = data_i,
-  prior = prior,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-  seed = 123 # Adding a seed makes results reproducible.
-) 
-  
-summary(m)
-jpeg(file=pp_left_path)
-marginal_effects(m)
-dev.off()
-
-#trans plot
-jpeg(file=pp_left_path)
-plot(m)
-dev.off()
-
-#pp_check plot
-jpeg(file=pp_left_path)
-pp_check(prior_check, nsamples = 100)
-dev.off()
-
-data_i$Est_int_left <- fixef(m)[1]
-data_i$Error_int_left <- fixef(m)[3]
-data_i$Est_dif_blue_left <- fixef(m)[2]
-data_i$Error_dif_blue_left <- fixef(m)[4]
-data_i$Rhat_1_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[1]]
-data_i$Rhat_2_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[2]]
-data_i$Rhat_3_left <- m[["fit"]]@.MISC[["summary"]][["rhat"]][[3]]
-data_i$Ess_1_left <- m[["fit"]]@.MISC[["summary"]][["ess"]][[1]]
-data_i$Ess_2_left <- m[["fit"]]@.MISC[["summary"]][["ess"]][[2]]
-data_i$Ess_3_left <- m[["fit"]]@.MISC[["summary"]][["ess"]][[3]]
-
-
 
 ```
 
