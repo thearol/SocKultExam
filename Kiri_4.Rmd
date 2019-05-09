@@ -620,57 +620,107 @@ prior_correct =  c(
   prior(normal(0,0.25), class = "sd", coef = "dif_blue_abs", group = "unique")
 )
 
+ 
+  
+#Defining paths for plots
+trans_path_pool_indi = file.path("~/SocKultExam/plots/transition/pool/trans_plot_pool_individual.jpeg")
+pp_path_pool_indi = file.path("~/SocKultExam/plots/pp_check/pool/pp_plot_pool_individual.jpeg")
+marginal_path_pool_indi = file.path("~/SocKultExam/plots/marginal/pool/marginal_plot_pool_individual.jpeg")
+#...and for correct
+correct_trans_path_pool_indi = file.path("~/SocKultExam/plots/correct_transition/pool/correct_trans_plot_pool_individual.jpeg")
+correct_pp_path_pool_indi = file.path("~/SocKultExam/plots/correct_pp_check/pool/correct_pp_plot_pool_individual.jpeg")
+correct_marginal_path_pool_indi = file.path("~/SocKultExam/plots/correct_marginal/pool/correct_marginal_plot_pool_individual.jpeg")
+  
+
 
 #Prior predictive check - for answer
-prior_check <- brm( answer ~ dif_blue + (dif_blue|unique), prior = prior_answer,
+prior_check_answer_pool_individual <- brm( answer ~ dif_blue + (dif_blue|unique), prior = prior_answer,
            data = ldata, sample_prior = "only",iter = 4000, family = "bernoulli")
 
 #Prior predictive check - for correct
-prior_check_c <- brm(Correct ~  0 + dif_blue_abs + (0 +dif_blue_abs|unique), prior = prior_correct,
+prior_check_correct_pool_individual <- brm(Correct ~  0 + dif_blue_abs + (0 +dif_blue_abs|unique), prior = prior_correct,
            data = ldata, sample_prior = "only",iter = 4000, family = "bernoulli")
 
+
+
 #Making the model - using answer
-  m_p <- brm(
-    answer ~ dif_blue + (1+dif_blue|unique),
-    data = ldata,
-    prior = prior_answer,
-    family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-    seed = 123 # Adding a seed makes results reproducible.
-  ) 
-  
+m_p <- brm(
+  answer ~ dif_blue + (1+dif_blue|unique),
+  data = ldata,
+  prior = prior_answer,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123 # Adding a seed makes results reproducible.
+) 
+
 #Making the model - using correct
-  m_p_c <- brm(
-    Correct ~ 0 +dif_blue_abs + (0+dif_blue_abs|unique),
-    data = ldata,
-    prior = prior_correct,
-    family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-    seed = 123 # Adding a seed makes results reproducible.
-  ) 
+m_p_c <- brm(
+  Correct ~ 0 +dif_blue_abs + (0+dif_blue_abs|unique),
+  data = ldata,
+  prior = prior_correct,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123 # Adding a seed makes results reproducible.
+) 
+
+
+  
+#Marginal effects plot: Plotted and saved
+jpeg(file=marginal_path_pool_indi)
+print(marginal_effects(m_p))
+dev.off()
+    
+  
+#transition plot: Plotted and saved
+jpeg(file=trans_path_pool_indi)
+print(plot(m_p))
+dev.off()
+
+#pp_check plot: Plotted and saved
+jpeg(file=pp_path_pool_indi)
+print(pp_check(prior_check_answer_pool_individual, nsamples = 100))
+dev.off()
+  
+  
+#For correct
+#Marginal effects plot: Plotted and saved
+jpeg(file=correct_marginal_path_pool_indi)
+print(marginal_effects(m_p_c))
+dev.off()
+    
+#transition plot: Plotted and saved
+jpeg(file=correct_trans_path_pool_indi)
+print(plot(m_p_c))
+dev.off()
+
+#pp_check plot: Plotted and saved
+jpeg(file=correct_pp_path_pool_indi)
+print(pp_check(prior_check_correct_pool_individual, nsamples = 100))
+dev.off()
+  
 
 ###CHECK IF THIS WORKS
 #Saving the estimates
-  #Saving summary in temporary dataframe
-  betas <- data.frame(m$prior[1:81, 3])
-  #Removing unique from the string
-  betas$m.prior.1.81..3. <- str_remove(betas$m.prior.1.81..3., "unique")
-  #Insert betas in dataframe
-  betas$Est_individual_p_answer <- fixef(m_p)[1:81] + ranef(m_p)[1:81]
-  betas$Est_idividual_p_correct <- fixef(m_p_c)[1:81] + ranef(m_p)[1:81]
-  
-#Merging with betas with results
-  #Renaming column names to right
-  names(betas) <- c("unique_ID_right", "Est_individual_p_right", "Est_idividual_p_correct_right")
-  
-  #Merge the betas with the results dataframe for right individual
-  Results<- left_join(Results, betas, by = "unique_ID_right")
+#Saving summary in temporary dataframe
+betas <- data.frame(m$prior[1:81, 3])
+#Removing unique from the string
+betas$m.prior.1.81..3. <- str_remove(betas$m.prior.1.81..3., "unique")
+#Insert betas in dataframe
+betas$Est_individual_p_answer <- fixef(m_p)[1:81] + ranef(m_p)[1:81]
+betas$Est_idividual_p_correct <- fixef(m_p_c)[1:81] + ranef(m_p)[1:81]
 
-  #Renaming column names to the left
-  names(betas) <- c("unique_ID_left", "Est_individual_p_left", "Est_idividual_p_correct_left")
-  
-  #Merge the betas with the results dataframe
-  Results <- left_join(Results, betas, by = "unique_ID_left")
-  
-  
+#Merging with betas with results
+#Renaming column names to right
+names(betas) <- c("unique_ID_right", "Est_individual_p_right", "Est_idividual_p_correct_right")
+
+#Merge the betas with the results dataframe for right individual
+Results<- left_join(Results, betas, by = "unique_ID_right")
+
+#Renaming column names to the left
+names(betas) <- c("unique_ID_left", "Est_individual_p_left", "Est_idividual_p_correct_left")
+
+#Merge the betas with the results dataframe
+Results <- left_join(Results, betas, by = "unique_ID_left")
+
+
 ```
 
 ```{r creating model with partial pooling, joint}
@@ -690,14 +740,23 @@ prior_correct =  c(
   prior(normal(0,0.25), class = "sd", coef = "dif_blue_abs", group = "GroupNumber")
 )
 
+#Defining paths for plots
+trans_path_pool_joint = file.path("~/SocKultExam/plots/transition/pool/trans_plot_pool_joint.jpeg")
+pp_path_pool_joint = file.path("~/SocKultExam/plots/pp_check/pool/pp_plot_pool_joint.jpeg")
+marginal_path_pool_joint = file.path("~/SocKultExam/plots/marginal/pool/marginal_plot_pool_joint.jpeg")
+#...and for correct
+correct_trans_path_pool_joint = file.path("~/SocKultExam/plots/correct_transition/pool/correct_trans_plot_pool_joint.jpeg")
+correct_pp_path_pool_joint = file.path("~/SocKultExam/plots/correct_pp_check/pool/correct_pp_plot_pool_joint.jpeg")
+correct_marginal_path_pool_joint = file.path("~/SocKultExam/plots/correct_marginal/pool/correct_marginal_plot_pool_joint.jpeg")
+  
 
   
 #Prior predictive check - for answer
-prior_check <- brm(joint_answer ~ dif_blue + (dif_blue|GroupNumber), prior = prior_answer_joint,
+prior_check_answer_pool_joint <- brm(joint_answer ~ dif_blue + (dif_blue|GroupNumber), prior = prior_answer_joint,
            data = ldata, sample_prior = "only",iter = 4000, family = "bernoulli")
 
 #Prior predictive check - for correct
-prior_check_c <- brm(Correct_joint ~  0 + dif_blue_abs + (0 +dif_blue_abs|GroupNumber), prior = prior_correct_joint,
+prior_check_correct_pool_joint <- brm(Correct_joint ~  0 + dif_blue_abs + (0 +dif_blue_abs|GroupNumber), prior = prior_correct_joint,
            data = ldata, sample_prior = "only",iter = 4000, family = "bernoulli")
 
 
@@ -722,6 +781,41 @@ m_joint_correct <- brm(
   
   ) 
 summary(m_joint_correct)
+
+  
+#Marginal effects plot: Plotted and saved
+jpeg(file=marginal_path_pool_joint)
+print(marginal_effects(m_joint_answer))
+dev.off()
+    
+  
+#transition plot: Plotted and saved
+jpeg(file=trans_path_pool_joint)
+print(plot(m_joint_answer))
+dev.off()
+
+#pp_check plot: Plotted and saved
+jpeg(file=pp_path_pool_joint)
+print(pp_check(prior_check_answer_pool_joint, nsamples = 100))
+dev.off()
+  
+  
+#For correct
+#Marginal effects plot: Plotted and saved
+jpeg(file=correct_marginal_path_pool_joint)
+print(marginal_effects(m_joint_correct))
+dev.off()
+    
+#transition plot: Plotted and saved
+jpeg(file=correct_trans_path_pool_joint)
+print(plot(m_joint_correct))
+dev.off()
+
+#pp_check plot: Plotted and saved
+jpeg(file=correct_pp_path_pool_joint)
+print(pp_check(prior_check_correct_pool_joint, nsamples = 100))
+dev.off()
+  
 
 ###CHECK OM DET HER VIRKER
 #Saving the estimates
