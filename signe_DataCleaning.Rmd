@@ -742,6 +742,11 @@ names(left) <- c("GroupNumber", "unique", "dif_blue", "answer", "joint_answer", 
 right <- subset(data, select = c(GroupNumber, unique_ID_right, dif_blue, right_answer, joint_answer, Correct_left, Correct_joint, dif_blue_abs))
 
 names(right) <- c("GroupNumber", "unique", "dif_blue", "answer", "joint_answer", "Correct", "Correct_joint", "dif_blue_abs")
+
+
+right$Correct_joint <- NA
+right$joint_answer <- NA
+
 ```
 
 
@@ -827,5 +832,62 @@ m_joint_correct <- brm(
   ) 
   
 summary(m_joint_correct)
+```
+
+```{r final model }
+
+#compute skill_difference (my slope divided by my partners slope)
+data$skill_dif_nopool_correct <- betas$/my_partners_slope
+
+data$skill_dif_nopool_answer <- my_slope/my_partners_slope
+
+data$skill_dif_pool_correct <- my_slope/my_partners_slope
+
+data$skill_dif_pool_answer <- my_slope/my_partners_slope
+
+
+#code for leader and follower gender
+#create a column that sorts out all the agreed trials
+data$chosen_leader <- ifelse(data$right_answer == data$left_answer, "Agree", 0) 
+
+data$chosen_leader[data$chosen_leader == 0 & data$Joint_right == 0] <- "Left_lead"
+
+data$chosen_leader[data$chosen_leader == 0 & data$Joint_left == 0] <- "Right_lead"
+
+
+#create column that specifies the gender of the leader
+Results$Leader_gender <- 0
+Results$Leader_gender <- ifelse(Results$chosen_leader == "Left_lead", as.character(Results$Gender_left), as.character(Results$Gender_right))
+Results$Leader_gender[Results$chosen_leader == "Agree"] <- NA
+
+#create column that specifies the gender of the follower
+Results$Follower_gender <- 0
+Results$Follower_gender <- ifelse(Results$chosen_leader == "Left_lead", as.character(Results$Gender_right), as.character(Results$Gender_left))
+Results$Follower_gender[Results$chosen_leader == "Agree"] <- NA
+
+
+#code leader and follower gender as dummies, 0 = male, 1 = female
+Results$Leader_gender[Results$Leader_gender == "male"] <- 0
+
+Results$Leader_gender[Results$Leader_gender == "female"] <- 1
+
+Results$Follower_gender[Results$Follower_gender == "male"] <- 0
+
+Results$Follower_gender[Results$Follower_gender == "female"] <- 1
+
+
+
+
+```
+
+```{r}
+get_prior(surrender ~ dif_blue + GroupNumber, data = Results)
+
+
+Propensity to surrender ~ skill_difference * leader_gender * follower_gender + (1 + skill_difference:followergender|ID)
+
+
+Propensity to surrender ~ skill_difference * leader_gender * follower_gender + confidence * leader_gender * follower_gender + (1 + skill_difference:followergender|ID)
+
 ```
 
