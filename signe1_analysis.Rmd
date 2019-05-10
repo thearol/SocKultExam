@@ -1,0 +1,416 @@
+---
+title: "Signe1_Analysis"
+author: "Signe Kløve Kjær"
+date: "10/5/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#set working directory 
+setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
+```
+
+
+
+## PREPARE NO POOLING 
+
+
+```{r prepare csv data files }
+#load no pooling csv files 
+
+left <- read.csv("Results_left.csv")
+
+right <- read.csv("Results_left_and_right.csv")
+
+joint <- read.csv("Results_left_right_joint.csv")
+
+
+#change column names 
+names(joint)[names(joint) == 'Est_dif_blue_joint'] <- 'Est_dif_blue_joint_answer'
+names(left)[names(left) == 'Est_dif_blue_left'] <- 'Est_dif_blue_left_answer'
+names(right)[names(right) == 'Est_dif_blue_right'] <- 'Est_dif_blue_right_answer'
+
+
+#delete columns which we do not need for the analysis
+left_ontheway <- select(left, -c(53:59, "Error_int_left_correct", "Est_int_left_correct", "Est_int_left", "Error_int_left", "Error_dif_blue_left"))
+
+
+#merge the shit 
+no_pool_data <- cbind(left_ontheway, right$Est_dif_blue_right_answer, right$Est_dif_blue_right_correct, joint$Est_dif_blue_joint_answer, joint$Est_dif_blue_joint_correct)
+
+
+#rename column names
+names(no_pool_data)[names(no_pool_data) == 'joint$Est_dif_blue_joint_answer'] <- 'Est_dif_blue_joint_answer'
+
+names(no_pool_data)[names(no_pool_data) == 'joint$Est_dif_blue_joint_correct'] <- 'Est_dif_blue_joint_correct'
+
+
+names(no_pool_data)[names(no_pool_data) == 'right$Est_dif_blue_right_answer'] <- 'Est_dif_blue_right_answer'
+
+names(no_pool_data)[names(no_pool_data) == 'right$Est_dif_blue_right_correct'] <- 'Est_dif_blue_right_correct'
+
+
+#take one row for each group 
+#no_pool_data <- no_pool_data[!duplicated(no_pool_data$GroupNumber), ]
+
+```
+
+
+```{r compute skill_dif and dummy code leader follower gender}
+
+#change to character 
+no_pool_data$Leader_gender <- as.character(no_pool_data$Leader_gender)
+no_pool_data$Follower_gender <- as.character(no_pool_data$Follower_gender)
+
+
+#code leader and follower gender as dummies, 0 = male, 1 = female
+no_pool_data$Leader_gender[no_pool_data$Leader_gender == "Male"] <- 0
+
+no_pool_data$Leader_gender[no_pool_data$Leader_gender == "Female"] <- 1
+
+no_pool_data$Follower_gender[no_pool_data$Follower_gender == "Male"] <- 0
+
+no_pool_data$Follower_gender[no_pool_data$Follower_gender == "Female"] <- 1
+
+#compute skill_difference (my slope divided by my partners slope)
+#for answer
+no_pool_data$skill_dif_answer <- 0
+no_pool_data$skill_dif_answer <- ifelse(no_pool_data$chosen_leader == "Left_lead", no_pool_data$Est_dif_blue_left_answer/no_pool_data$Est_dif_blue_right_answer, no_pool_data$Est_dif_blue_right_answer/no_pool_data$Est_dif_blue_left_answer)
+no_pool_data$skill_dif_answer[no_pool_data$chosen_leader == "Agree"] <- NA
+
+#for correct
+no_pool_data$skill_dif_correct <- 0
+no_pool_data$skill_dif_correct <- ifelse(no_pool_data$chosen_leader == "Left_lead", no_pool_data$Est_dif_blue_left_correct/no_pool_data$Est_dif_blue_right_correct, no_pool_data$Est_dif_blue_right_correct/no_pool_data$Est_dif_blue_left_correct)
+no_pool_data$skill_dif_correct[no_pool_data$chosen_leader == "Agree"] <- NA
+
+
+#rename stubbornb leader column
+names(no_pool_data)[names(no_pool_data) == 'Stubborn_leader'] <- 'Surrender'
+
+no_pool_data$Surrender <- as.character(no_pool_data$Surrender)
+
+#dummy code surrender columns, surrender = 1, stick = 0
+no_pool_data$Surrender[no_pool_data$Surrender == "surrender"] <- 1
+
+no_pool_data$Surrender[no_pool_data$Surrender == "stick"] <- 0
+
+#Making column specifying the leader and follower gender
+# no_pool_data$Leader_Follower <- paste("Leader:", no_pool_data$Leader_gender, "_Follower:", no_pool_data$Follower_gender, sep = "")
+# no_pool_data$Leader_Follower[no_pool_data$chosen_leader == "Agree"] <- NA
+
+
+#rename confidence
+names(no_pool_data)[names(no_pool_data) == 'Response_left'] <- 'confidence_left'
+names(no_pool_data)[names(no_pool_data) == 'Response_right'] <- 'confidence_right'
+
+
+```
+
+
+
+
+
+```{r create long form}
+#take just the columns we need
+no_pool_long <- subset(no_pool_data, select = c(GroupNumber, unique_ID_left, unique_ID_right, dif_blue, dif_blue_abs, chosen_leader, Leader_gender, Follower_gender, skill_dif_correct, skill_dif_answer, confidence_left, confidence_right, Surrender))
+
+
+#change to long format 
+#collapse unique id into one
+no_pool_long_test <- melt(no_pool_long, 
+                     variable.name = "Position",
+                     value.name = "Subject",
+                     id.vars = c("GroupNumber", "dif_blue", "dif_blue_abs", "chosen_leader","Leader_gender", "Follower_gender", "skill_dif_correct", "skill_dif_answer", "confidence_left", "confidence_right", "Surrender"))
+
+#collape confidence left/right into one
+no_pool_long_test <- melt(no_pool_long_test, 
+                     variable.name = "one",
+                     value.name = "Confidence",
+                     id.vars = c("GroupNumber", "dif_blue", "dif_blue_abs", "chosen_leader","Leader_gender", "Follower_gender", "skill_dif_correct", "skill_dif_answer", "Surrender", "Position", "Subject"))
+
+#delete extra columns 
+no_pool_long <- select(no_pool_long_test, -c("one"))
+
+#make confidence absolute 
+no_pool_long$Confidence <- abs(no_pool_long$Confidence)
+```
+
+
+##PREPARE POOLING DATA
+
+```{r}
+#read csv files with estimates
+pool_estimates <- read.csv("pooling_individual_wide.csv")
+
+#change names 
+names(pool_estimates)[names(pool_estimates) == 'Slope_ranef_fixef_estimate_answer_left'] <- 'Est_dif_blue_left_answer'
+
+names(pool_estimates)[names(pool_estimates) == 'Slope_ranef_fixef_estimate_answer_right'] <- 'Est_dif_blue_right_answer'
+
+names(pool_estimates)[names(pool_estimates) == 'Slope_ranef_fixef_estimate_correct_left'] <- 'Est_dif_blue_left_correct'
+
+names(pool_estimates)[names(pool_estimates) == 'Slope_ranef_fixef_estimate_correct_right'] <- 'Est_dif_blue_right_correct'
+
+
+#create chosen leader column 
+#create a column that sorts out all the agreed trials
+pool_estimates$chosen_leader <- ifelse(pool_estimates$right_answer == pool_estimates$left_answer, "Agree", 0) 
+
+#Create variable, which determines the chosen leader
+pool_estimates$chosen_leader[pool_estimates$chosen_leader == 0 & pool_estimates$Joint_right == 0] <- "Left_lead"
+pool_estimates$chosen_leader[pool_estimates$chosen_leader == 0 & pool_estimates$Joint_left == 0] <- "Right_lead"
+
+pool_estimates$chosen_leader[pool_estimates$chosen_leader == "Agree"] <- NA
+
+#create column that specifies the gender of the leader
+pool_estimates$Leader_gender <- 0
+pool_estimates$Leader_gender <- ifelse(pool_estimates$chosen_leader == "Left_lead", as.character(pool_estimates$Gender_left), as.character(pool_estimates$Gender_right))
+pool_estimates$Leader_gender[pool_estimates$chosen_leader == "Agree"] <- NA
+
+#create column that specifies the gender of the follower
+pool_estimates$Follower_gender <- 0
+pool_estimates$Follower_gender <- ifelse(pool_estimates$chosen_leader == "Left_lead", as.character(pool_estimates$Gender_right), as.character(pool_estimates$Gender_left))
+pool_estimates$Follower_gender[pool_estimates$chosen_leader == "Agree"] <- NA
+
+
+#create stubborn leader
+pool_estimates$Stubborn_leader <- 0 #Creating column of 0's
+
+pool_estimates$Stubborn_leader[pool_estimates$chosen_leader == "Right_lead" & pool_estimates$joint_answer == pool_estimates$right_answer] <- "stick" #Inserting cases were leader stick for right leader
+pool_estimates$Stubborn_leader[pool_estimates$chosen_leader == "Right_lead" & pool_estimates$joint_answer != pool_estimates$right_answer] <- "surrender" #Inserting cases were leader surrender for right leader
+
+pool_estimates$Stubborn_leader[pool_estimates$chosen_leader == "Left_lead" & pool_estimates$joint_answer == pool_estimates$left_answer] <- "stick" #Inserting cases were leader stick for left leader
+pool_estimates$Stubborn_leader[pool_estimates$chosen_leader == "Left_lead" & pool_estimates$joint_answer != pool_estimates$left_answer] <- "surrender" #Inserting cases were leader surreder for left leader
+
+pool_estimates$Stubborn_leader[pool_estimates$chosen_leader == "Agree"] <- NA #Removing cases were they agree
+
+
+
+#skill dif answer
+pool_estimates$skill_dif_answer <- 0
+pool_estimates$skill_dif_answer <- ifelse(pool_estimates$chosen_leader == "Left_lead", pool_estimates$Est_dif_blue_left_answer/pool_estimates$Est_dif_blue_right_answer, pool_estimates$Est_dif_blue_right_answer/pool_estimates$Est_dif_blue_left_answer)
+
+pool_estimates$skill_dif_answer[pool_estimates$chosen_leader == "Agree"] <- NA
+
+#for correct
+pool_estimates$skill_dif_correct <- 0
+pool_estimates$skill_dif_correct <- ifelse(pool_estimates$chosen_leader == "Left_lead", pool_estimates$Est_dif_blue_left_correct/pool_estimates$Est_dif_blue_right_correct, pool_estimates$Est_dif_blue_right_correct/pool_estimates$Est_dif_blue_left_correct)
+pool_estimates$skill_dif_correct[pool_estimates$chosen_leader == "Agree"] <- NA
+
+
+
+#rename stubbornb leader column
+names(pool_estimates)[names(pool_estimates) == 'Stubborn_leader'] <- 'Surrender'
+
+pool_estimates$Surrender <- as.character(pool_estimates$Surrender)
+
+#dummy code surrender columns, surrender = 1, stick = 0
+pool_estimates$Surrender[pool_estimates$Surrender == "surrender"] <- 1
+
+pool_estimates$Surrender[pool_estimates$Surrender == "stick"] <- 0
+
+
+#rename confidence
+names(pool_estimates)[names(pool_estimates) == 'Response_left'] <- 'confidence_left'
+names(pool_estimates)[names(pool_estimates) == 'Response_right'] <- 'confidence_right'
+
+
+#take just the columns we need
+pool_long <- subset(pool_estimates, select = c(GroupNumber, unique_ID_left, unique_ID_right, dif_blue, dif_blue_abs, chosen_leader, Leader_gender, Follower_gender, skill_dif_correct, skill_dif_answer, confidence_left, confidence_right, Surrender))
+
+
+#change to long format 
+#collapse unique id into one
+pool_long_test <- melt(pool_long, 
+                     variable.name = "Position",
+                     value.name = "Subject",
+                     id.vars = c("GroupNumber", "dif_blue", "dif_blue_abs", "chosen_leader","Leader_gender", "Follower_gender", "skill_dif_correct", "skill_dif_answer", "confidence_left", "confidence_right", "Surrender"))
+
+#collape confidence left/right into one
+pool_long_test <- melt(pool_long_test, 
+                     variable.name = "one",
+                     value.name = "Confidence",
+                     id.vars = c("GroupNumber", "dif_blue", "dif_blue_abs", "chosen_leader","Leader_gender", "Follower_gender", "skill_dif_correct", "skill_dif_answer", "Surrender", "Position", "Subject"))
+
+#delete extra columns 
+pool_long <- select(pool_long_test, -c("one"))
+
+#make confidence absolute 
+pool_long$Confidence <- abs(pool_long$Confidence)
+
+
+```
+
+
+
+```{r create the answer model with main effects }
+#####MAKE THE MODEL########
+
+# Propensity to surrender ~ skill_difference * leader_gender * follower_gender + (1 + skill_difference:followergender|ID)
+# 
+# 
+# Propensity to surrender ~ skill_difference * leader_gender * follower_gender + confidence * leader_gender * follower_gender + (1 + skill_difference:followergender|ID)
+
+get_prior(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), data = no_pool_long, family = "bernoulli")
+
+
+#Defining priors
+prior_answer =  c(
+  prior(normal(0,1), class = "b", coef = "Follower_gender1"),
+  prior(normal(0,1), class = "b", coef = "Leader_gender1"),
+  prior(normal(0,1), class = "b", coef = "Leader_gender1:Follower_gender1"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_answer"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_answer:Follower_gender1"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_answer:Leader_gender1"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_answer:Leader_gender1:Follower_gender1"),
+  prior(normal(0,1), class = "Intercept"), 
+  prior(normal(0,1), class = "sd", coef = "Intercept", group = "Subject"),
+  prior(normal(0,1), class = "sd", coef = "skill_dif_answer:Follower_gender0", group = "Subject"),
+  prior(normal(0,1), class = "sd", coef = "skill_dif_answer:Follower_gender1", group = "Subject")
+  )
+
+#prior predictive check no pool
+prior_check_no_pool_answer <- brm(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), prior = prior_answer, data = no_pool_long, sample_prior = "only",iter = 4000, family = "bernoulli")
+
+#prior predictive check pool
+prior_check_pool_answer <- brm(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), prior = prior_answer, data = pool_long, sample_prior = "only",iter = 4000, family = "bernoulli")
+
+
+pp_check(prior_check_answer, nsamples = 100)
+
+
+pp_check(prior_check_no_pool_answer, nsamples = 100)
+
+pp_check(prior_check_pool_answer, nsamples = 100)
+
+
+m_no_pool_answer <- brm(
+  Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ),
+  data = no_pool_long,
+  prior = prior_answer,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123 # Adding a seed makes results reproducible.
+  
+  ) 
+
+
+m_pool_answer <- brm(
+  Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ),
+  data = pool_long,
+  prior = prior_answer,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123 # Adding a seed makes results reproducible.
+  
+  ) 
+
+
+
+```
+
+
+
+```{r create the correct model with main effects }
+
+get_prior(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), data = no_pool_long, family = "bernoulli")
+
+
+#Defining priors
+prior_correct =  c(
+  prior(normal(0,1), class = "b", coef = "Follower_gender1"),
+  prior(normal(0,1), class = "b", coef = "Leader_gender1"),
+  prior(normal(0,1), class = "b", coef = "Leader_gender1:Follower_gender1"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_correct"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_correct:Follower_gender1"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_correct:Leader_gender1"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_correct:Leader_gender1:Follower_gender1"),
+  prior(normal(0,1), class = "Intercept"), 
+  prior(normal(0,1), class = "sd", coef = "Intercept", group = "Subject"),
+  prior(normal(0,1), class = "sd", coef = "skill_dif_correct:Follower_gender0", group = "Subject"),
+  prior(normal(0,1), class = "sd", coef = "skill_dif_correct:Follower_gender1", group = "Subject")
+  )
+
+
+#prior predictive check no pool
+prior_check_no_pool_correct <- brm(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), prior = prior_correct, data = no_pool_long, sample_prior = "only",iter = 4000, family = "bernoulli")
+
+#prior predictive check pool
+prior_check_pool_correct <- brm(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), prior = prior_correct, data = pool_long, sample_prior = "only",iter = 4000, family = "bernoulli")
+
+
+
+pp_check(prior_check_no_pool_correct, nsamples = 100)
+
+pp_check(prior_check_pool_correct, nsamples = 100)
+
+
+m_no_pool_correct <- brm(
+  Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ),
+  data = no_pool_long,
+  prior = prior_correct,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123 # Adding a seed makes results reproducible.
+  
+  ) 
+
+
+m_pool_correct <- brm(
+  Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ),
+  data = pool_long,
+  prior = prior_correct,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123 # Adding a seed makes results reproducible.
+  
+  ) 
+
+```
+
+
+
+```{r}
+predict predicts new data (0 or 1s in your case) while fitted returns the probability of getting a one. To see this, try out fitted(m, summary = FALSE) and predict(m, summary = FALSE)
+
+
+#make predictions
+nd <- tibble(diagnosis = factor(seq(from = 0, to = 1, by = 1)))
+         
+p <- predict(model_1.3, allow_new_levels = T, re_formula = ~ (1 | ID), sample_new_levels = "gaussian", newdata = nd, summary = FALSE)
+
+#as dataframe
+p <- as.data.frame(p)
+
+#make dataframe with diagnosis and predicted estimates 
+diag0 <- subset(p, select = V1)
+
+diag0$diagnosis <- 0
+
+names(diag0) <- c("Estimate", "diagnosis")
+
+diag1 <- subset(p, select = V2)
+
+diag1$diagnosis <- 1
+
+names(diag1) <- c("Estimate", "diagnosis")
+
+pred_data <- rbind(diag0, diag1)
+
+pred_data$diagnosis <- as.factor(pred_data$diagnosis)
+
+#create the plot
+bee <- ggplot(data, aes(x = diagnosis, y = PitchSD_z)) +
+  geom_violin(aes(x = diagnosis, y = Estimate), data = pred_data, trim = FALSE) + 
+  ylim(-3,3) + 
+  geom_quasirandom(alpha = 0.5, colour = "dark red") +
+  labs(x = "diagnosis", y = "Pitch", title = "Flot plot") + 
+  geom_boxplot(aes(x = diagnosis, y = Estimate), data = pred_data, width = 0.12) 
+
+  
+bee
+
+
+dens(pred_data)
+```
+
