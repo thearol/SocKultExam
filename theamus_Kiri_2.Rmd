@@ -638,9 +638,9 @@ get_prior(Correct ~ 0 + dif_blue + (0+ dif_blue|unique), family = "bernoulli", d
 #Defining priors
 prior_answer =  c(
   prior(normal(0,0.125), class = "b", coef = "dif_blue"),
-  prior(normal(0.5,0.17), class = "Intercept"),
+  prior(normal(0,0.17), class = "Intercept"),
   prior(normal(0,0.125), class = "sd", coef = "dif_blue", group = "unique"),
-  prior(normal(0.5,0.17), class = "sd", coef = "Intercept", group = "unique")
+  prior(normal(0,0.17), class = "sd", coef = "Intercept", group = "unique")
 )
 
 prior_correct =  c(
@@ -724,46 +724,50 @@ jpeg(file=correct_pp_path_pool_indi)
 print(pp_check(prior_check_correct_pool_individual, nsamples = 100))
 dev.off()
   
+###Saving the estimates
 
-###CHECK IF THIS WORKS
-#Saving the estimates
-#Saving summary in temporary dataframe
-betas <- data.frame(m$prior[1:81, 3])
-#Removing unique from the string
-betas$m.prior.1.81..3. <- str_remove(betas$m.prior.1.81..3., "unique")
-#Insert betas in dataframe
-betas$Est_individual_p_answer <- fixef(m_p)[1:81] + ranef(m_p)[1:81]
-betas$Est_idividual_p_correct <- fixef(m_p_c)[1:81] + ranef(m_p)[1:81]
+#ANSWER
+#Saving random effect for individual 
+pooling_individual_ranef <- as.data.frame(ranef(m_p))[,1:2] #Intercept
 
-#Merging with betas with results
-#Renaming column names to right
-names(betas) <- c("unique_ID_right", "Est_individual_p_right", "Est_idividual_p_correct_right")
+pooling_individual_ranef <- cbind(pooling_individual_ranef, as.data.frame(ranef(m_p))[,5:6]) #Slope
 
-#Merge the betas with the results dataframe for right individual
-Results<- left_join(Results, betas, by = "unique_ID_right")
+#Adding fixed effects to random effect
+pooling_individual_fixef <- as.data.frame(fixef(m_p)) #Making data frame of fixed effects
 
-#Renaming column names to the left
-names(betas) <- c("unique_ID_left", "Est_individual_p_left", "Est_idividual_p_correct_left")
+pooling_individual$Intercept_ranef_fixef_estimate_answer <- pooling_individual_ranef[, 1] + pooling_individual_fixef[1, 1] #Adding fixef of intercept to ranef of intercept
 
-#Merge the betas with the results dataframe
-Results <- left_join(Results, betas, by = "unique_ID_left")
+pooling_individual$Slope_ranef_fixef_estimate_answer <- pooling_individual_ranef[, 3] + pooling_individual_fixef[1, 2] #Adding fixef of slope to ranef of slope
+
+#CORRECT
+#Saving random effect for individual 
+pooling_individual_ranef <- as.data.frame(ranef(m_p_c))[,1:2] #Slope
+
+#Adding fixed effects to random effect
+pooling_individual_fixef <- as.data.frame(fixef(m_p_c)) #Making data frame of fixed effects
+
+pooling_individual$Slope_ranef_fixef_estimate_correct <- pooling_individual_ranef[, 1] + pooling_individual_fixef[1, 1] #Adding fixef of slope to ranef of slope
 
 
+#Adding rownames
+pooling_individual <- cbind(Row.Names = rownames(pooling_individual_ranef), as.data.frame(pooling_individual))
+
+write.csv(pooling_individual, file = "pooling_individual.csv")
 ```
 
-```{r creating model with partial pooling, joint}
+```{r creating model with partial pooling, joint, skal ikke bruges alligevel}
 get_prior(joint_answer ~ dif_blue + (1 + dif_blue|GroupNumber), family = "bernoulli", data = ldata)
 get_prior(Correct_joint ~ dif_blue_abs + (0 + dif_blue|GroupNumber), family = "bernoulli", data = ldata)
 
 #Defining priors
-prior_answer =  c(
+prior_answer_joint =  c(
   prior(normal(0,0.125), class = "b", coef = "dif_blue"),
-  prior(normal(0.5,0.17), class = "Intercept"),
+  prior(normal(0,0.17), class = "Intercept"),
   prior(normal(0,0.125), class = "sd", coef = "dif_blue", group = "GroupNumber"),
-  prior(normal(0.5,0.17), class = "sd", coef = "Intercept", group = "GroupNumber")
+  prior(normal(0,0.17), class = "sd", coef = "Intercept", group = "GroupNumber")
 )
 
-prior_correct =  c(
+prior_correct_joint =  c(
   prior(normal(0,0.25), class = "b", coef = "dif_blue_abs"),
   prior(normal(0,0.25), class = "sd", coef = "dif_blue_abs", group = "GroupNumber")
 )
@@ -843,32 +847,36 @@ dev.off()
 jpeg(file=correct_pp_path_pool_joint)
 print(pp_check(prior_check_correct_pool_joint, nsamples = 100))
 dev.off()
-  
 
-###CHECK OM DET HER VIRKER
-#Saving the estimates
-  #Saving summary in temporary dataframe
-  betas <- data.frame(m_joint_answer$prior[1:?, 3])
-  #Removing unique from the string
-  betas$m.prior.1.81..3. <- str_remove(betas$prior_check.prior.1.?..3., "unique")
-  #Insert betas in dataframe
-  betas$Est_individual_p_answer <- fixef(m_p)[1:?] + ranef(m_p)[1:81]
-  betas$Est_idividual_p_correct <- fixef(m_p_c)[1:81] + ranef(m_p)[1:81]
-  
-#Merging with betas with results
-  #Renaming column names to right
-  names(betas) <- c("unique_ID_right", "Est_individual_p_right", "Est_idividual_p_correct_right")
-  
-  #Merge the betas with the results dataframe for right individual
-  Results<- left_join(Results, betas, by = "unique_ID_right")
+#Saving estimates - runned till here!!
 
-  #Renaming column names to the left
-  names(betas) <- c("unique_ID_left", "Est_individual_p_left", "Est_idividual_p_correct_left")
-  
-  #Merge the betas with the results dataframe
-  Results <- left_join(Results, betas, by = "unique_ID_left")
-  
+#ANSWER
+#Saving random effect for individual 
+pooling_joint_ranef <- as.data.frame(ranef(m_joint_answer))[,1:2] #Intercept
 
+pooling_joint_ranef <- cbind(pooling_individual_ranef, as.data.frame(ranef(m_joint_answer))[,5:6]) #Slope
+
+#Adding fixed effects to random effect
+pooling_joint_fixef <- as.data.frame(fixef(m_joint_answer)) #Making data frame of fixed effects
+
+pooling_joint$Intercept_ranef_fixef_estimate_answer <- pooling_joint_ranef[, 1] + pooling_joint_fixef[1, 1] #Adding fixef of intercept to ranef of intercept
+
+pooling_joint$Slope_ranef_fixef_estimate_answer <- pooling_joint_ranef[, 3] + pooling_joint_fixef[1, 2] #Adding fixef of slope to ranef of slope
+
+#CORRECT
+#Saving random effect for individual 
+pooling_individual_ranef <- as.data.frame(ranef(m_p_c))[,1:2] #Slope
+
+#Adding fixed effects to random effect
+pooling_individual_fixef <- as.data.frame(fixef(m_p_c)) #Making data frame of fixed effects
+
+pooling_individual$Slope_ranef_fixef_estimate_correct <- pooling_individual_ranef[, 1] + pooling_individual_fixef[1, 1] #Adding fixef of slope to ranef of slope
+
+
+#Adding rownames
+pooling_joint <- cbind(Row.Names = rownames(pooling_individual_ranef), as.data.frame(pooling_individual))
+
+write.csv(pooling_individual, file = "pooling_individual.csv")
 ```
 
 #Calculating performance difference
