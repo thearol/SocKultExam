@@ -18,7 +18,7 @@ setwd("~/SocKultExam")
 
 
 library(pacman)
-p_load(lmer, lme4, lmerTest, brms)
+p_load(lme4, lmerTest, brms, tidyverse)
 
 ```
 
@@ -162,6 +162,8 @@ no_pool_long <- rbind(no_pool_left, no_pool_right)
 
 no_pool_disagree <- na.omit(no_pool_long)
 
+names(no_pool_disagree)[names(no_pool_disagree) == 'unique_ID'] <- 'Subject'
+
 #make confidence absolute 
 #no_pool_long$Confidence <- abs(no_pool_long$Confidence)
 ```
@@ -294,10 +296,15 @@ pool_long <- rbind(pool_left, pool_right)
 
 pool_disagree <- na.omit(pool_long)
 
+names(pool_disagree)[names(pool_disagree) == 'unique_ID'] <- 'Subject'
+
 #make confidence absolute 
 #pool_long$Confidence <- abs(pool_long$Confidence)
 
 dens(pool_disagree$skill_dif_correct)
+
+pool_disagree$Surrender <- as.factor(pool_disagree$Surrender)
+
 
 ```
 
@@ -346,7 +353,7 @@ pp_check(prior_check_pool_answer, nsamples = 100)
 
 m_no_pool_answer <- brm(
   Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ),
-  data = no_pool_long,
+  data = no_pool_disagree,
   prior = prior_answer,
   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123 # Adding a seed makes results reproducible.
@@ -356,7 +363,7 @@ m_no_pool_answer <- brm(
 
 m_pool_answer <- brm(
   Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ),
-  data = pool_long,
+  data = pool_disagree,
   prior = prior_answer,
   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123 # Adding a seed makes results reproducible.
@@ -368,6 +375,15 @@ summary(m_pool_answer)
 
 ```
 
+```{r}
+conditions <- make_conditions(m_pool_answer, "skill_dif_answer")
+wuu <- marginal_effects(m_pool_answer, "Leader_gender:Follower_gender", conditions = conditions, select_points = 0.1)
+
+plot(wuu, points = TRUE)
+
+
+dens(pool_disagree$skill_dif_answer)
+```
 
 
 ```{r create the correct model with main effects }
@@ -417,6 +433,10 @@ m_no_pool_correct <- brm(
   ) 
 
 
+pool_disagree$Surrender <- as.factor(pool_disagree$Surrender)
+pool_disagree$Leader_gender <- as.factor(pool_disagree$Leader_gender)
+pool_disagree$Follower_gender <- as.factor(pool_disagree$Follower_gender)
+
 m_pool_correct <- brm(
   Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ),
   data = pool_disagree,
@@ -432,26 +452,84 @@ summary(m_pool_correct)
 
 ```
 
+
+
+#THEA TRIES SOMETHING NEW
+
+```{r}
+
+pool_disagree$Leader_Follower <- paste("Leader:", pool_disagree$Leader_gender, "_Follower:", pool_disagree$Follower_gender, sep = "")
+
+
+pool_disagree$Leader_Follower[pool_disagree$Leader_Follower == "Leader:0_Follower:0"] <- "1"
+
+pool_disagree$Leader_Follower[pool_disagree$Leader_Follower == "Leader:1_Follower:1"] <- "2"
+
+pool_disagree$Leader_Follower[pool_disagree$Leader_Follower == "Leader:1_Follower:0"] <- "3"
+
+pool_disagree$Leader_Follower[pool_disagree$Leader_Follower == "Leader:0_Follower:1"] <- "4"
+
+
+
+get_prior(Surrender ~ skill_dif_correct * Leader_Follower + (1 + skill_dif_correct:Follower_gender | Subject ), data = pool_disagree, family = "bernoulli")
+
+#Defining priors
+prior_answer =  c(
+  prior(normal(0,1), class = "b", coef = "Follower_gender1"),
+  prior(normal(0,1), class = "b", coef = "Leader_gender1"),
+  prior(normal(0,1), class = "b", coef = "Leader_gender1:Follower_gender1"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_answer"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_answer:Follower_gender1"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_answer:Leader_gender1"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_answer:Leader_gender1:Follower_gender1"),
+  prior(normal(0,1), class = "Intercept"), 
+  prior(normal(0,1), class = "sd", coef = "Intercept", group = "Subject"),
+  prior(normal(0,1), class = "sd", coef = "skill_dif_answer:Follower_gender0", group = "Subject"),
+  prior(normal(0,1), class = "sd", coef = "skill_dif_answer:Follower_gender1", group = "Subject")
+  )
+
+
+thea_m_pool_answer <- brm(
+  Surrender ~ skill_dif_answer * Leader_Follower + (1 + skill_dif_answer:Follower_gender | Subject ),
+  data = pool_disagree,
+  prior = prior_answer,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123 # Adding a seed makes results reproducible.
+  
+  ) 
+
+
+```
+
+
+
+
+
 #PLOT
 
 
 ```{r}
+
+pool_disagree$Leader_Follower <- paste("Leader:", pool_disagree$Leader_gender, "_Follower:", pool_disagree$Follower_gender, sep = "")
+
+pool_disagree$Leader_Follower <- as.numeric(pool_disagree$Leader_Follower)
+pool_disagree$Leader_Follower <- as.factor(pool_disagree$Leader_Follower)
+
+
+
 nd <- 
-  tibble(skill_dif_correct= seq(from = 0, to = 6.3, length.out = 30) %>% 
+  tibble(skill_dif_answer= seq(from = -62, to = 15, length.out = 2000) %>% 
            rep(., times = 2),
-         cont_africa = rep(0:1, each = 30))
+         Leader_Follower = rep(1:4, each = 1000),
+         Subject = NA)
 
 
-b7.5b <-
-  update(b7.5,
-         formula = log_gdp ~ 1 + rugged + cont_africa + rugged:cont_africa) 
-
-
-f <-
-  fitted(b7.5, newdata = nd) %>%  # we can use the same nd data from last time
+pred_pool_answer <-
+  fitted(m_pool_answer, newdata = nd, re_formula = NULL) %>%  # we can use the same nd data from last time
   as_tibble() %>%
-  bind_cols(nd) %>%
-  mutate(cont_africa = ifelse(cont_africa == 1, "Africa", "not Africa"))
+  bind_cols(nd) #%>%
+#  mutate(Leader_gender = ifelse(Leader_gender == 1, "Female", "Male"))
+  
 
 
 dd %>%
@@ -474,6 +552,22 @@ dd %>%
         legend.position = "none") +
   facet_wrap(~cont_africa)
 ```
+
+
+
+
+
+```{r}
+g = glmer(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1| Subject) , family = "binomial", data = pool_disagree, REML=F)
+
+
+summary(g)
+
+```
+
+
+
+
 
 
 ```{r}
@@ -532,6 +626,35 @@ dens(pred_data)
 
 
 
+```{r}
+
+
+
+
+
+ggplot(pool_disagree, aes(skill_dif_correct, Surrender, fill = Leader_gender, color = Follower_gender)) +
+  geom_point() +
+  stat_smooth(method.args=list(family="binomial"), se=FALSE)
+
+
+ggplot(pool_disagree, aes(x=skill_dif_correct)) +
+  geom_smooth( data= pool_disagree, aes(y=Surrender, ymin = 0, ymax = 1, fill = Leader_Follower, color = Leader_Follower))
+
+
+ggplot(dat, aes(x=mpg, y=vs)) + geom_point() + 
+  stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)
+
+
+library(rethinking)
+dens(pool_disagree$skill_dif_correct)
+
+dens(pool_disagree$skill_dif_answer)
+
+
+pool_disagree$Surrender <- as.factor(pool_disagree$Surrender)
+dens(pool_disagree$Surrender)
+
+```
 
 
 
