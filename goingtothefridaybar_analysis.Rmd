@@ -17,6 +17,9 @@ knitr::opts_chunk$set(echo = TRUE)
 setwd("~/SocKultExam")
 
 
+library(pacman)
+p_load(lmer, lme4, lmerTest)
+
 ```
 
 
@@ -102,6 +105,8 @@ no_pool_data$Surrender <- as.character(no_pool_data$Surrender)
 no_pool_data$Surrender[no_pool_data$Surrender == "surrender"] <- 1
 
 no_pool_data$Surrender[no_pool_data$Surrender == "stick"] <- 0
+
+no_pool_estimates$Surrender[no_pool_estimates$chosen_leader == "Agree"] <- NA
 
 #Making column specifying the leader and follower gender
 # no_pool_data$Leader_Follower <- paste("Leader:", no_pool_data$Leader_gender, "_Follower:", no_pool_data$Follower_gender, sep = "")
@@ -226,6 +231,7 @@ pool_estimates$Surrender[pool_estimates$Surrender == "surrender"] <- 1
 
 pool_estimates$Surrender[pool_estimates$Surrender == "stick"] <- 0
 
+pool_estimates$Surrender[pool_estimates$chosen_leader == "Agree"] <- NA
 
 #rename confidence
 names(pool_estimates)[names(pool_estimates) == 'Response_left'] <- 'confidence_left'
@@ -320,6 +326,7 @@ m_pool_answer <- brm(
   
   ) 
 
+summary(m_pool_answer)
 
 
 ```
@@ -384,46 +391,100 @@ m_pool_correct <- brm(
 
 summary(m_pool_correct)
 
+
+
 ```
 
+#PLOT
 
 
 ```{r}
-predict predicts new data (0 or 1s in your case) while fitted returns the probability of getting a one. To see this, try out fitted(m, summary = FALSE) and predict(m, summary = FALSE)
+nd <- 
+  tibble(skill_dif_correct= seq(from = 0, to = 6.3, length.out = 30) %>% 
+           rep(., times = 2),
+         cont_africa = rep(0:1, each = 30))
 
+
+b7.5b <-
+  update(b7.5,
+         formula = log_gdp ~ 1 + rugged + cont_africa + rugged:cont_africa) 
+
+
+f <-
+  fitted(b7.5, newdata = nd) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd) %>%
+  mutate(cont_africa = ifelse(cont_africa == 1, "Africa", "not Africa"))
+
+
+dd %>%
+  mutate(cont_africa = ifelse(cont_africa == 1, "Africa", "not Africa")) %>%
+  
+  ggplot(aes(x = rugged, color = cont_africa)) +
+  geom_smooth(data = f,
+              aes(y = Estimate, ymin = Q2.5, ymax = Q97.5,
+                  fill = cont_africa),
+              stat = "identity", 
+              alpha = 1/4, size = 1/2) +
+  geom_point(aes(y = log_gdp),
+             size = 2/3) +
+  scale_colour_pander() +
+  scale_fill_pander() +
+  scale_x_continuous("Terrain Ruggedness Index", expand = c(0, 0)) +
+  ylab("log GDP from year 2000") +
+  theme_pander() + 
+  theme(text = element_text(family = "Times"),
+        legend.position = "none") +
+  facet_wrap(~cont_africa)
+```
+
+
+```{r}
+#predict predicts new data (0 or 1s in your case) while fitted returns the probability of getting a one. To see this, try out fitted(m, summary = FALSE) and predict(m, summary = FALSE)
+
+pool_long$Leader_gender <- as.factor(pool_long$Leader_gender)
+pool_long$Follower_gender <- as.factor(pool_long$Follower_gender)
 
 #make predictions
-nd <- tibble(diagnosis = factor(seq(from = 0, to = 1, by = 1)))
-         
-p <- predict(model_1.3, allow_new_levels = T, re_formula = ~ (1 | ID), sample_new_levels = "gaussian", newdata = nd, summary = FALSE)
+
+nd <- tibble(Surrender = factor(seq(from = 0, to = 1, by = 1)), Leader_gender = factor(seq(from = 0, to = 1, by = 1)), Follower_gender = factor(seq(from = 0, to = 1, by = 1)), skill_dif_correct = as.numeric(factor(seq(from = 0, to = 1, by = 1))))
+
+
+#nd <- cbind(nd, "skill_dif_correct")
+
+p <- predict(m_pool_correct, allow_new_levels = T, re_formula = ~ (1 + skill_dif_correct:Follower_gender| Subject), sample_new_levels = "gaussian", newdata = nd, summary = FALSE)
+
+p_fit <- fitted(m_pool_correct, allow_new_levels = T, re_formula = ~ (1 + skill_dif_correct:Follower_gender| Subject), sample_new_levels = "gaussian", newdata = nd, summary = FALSE)
 
 #as dataframe
 p <- as.data.frame(p)
+p_fit <- as.data.frame(p_fit)
 
 #make dataframe with diagnosis and predicted estimates 
-diag0 <- subset(p, select = V1)
+stick <- subset(p_fit, select = V1)
 
-diag0$diagnosis <- 0
+stick$surrender <- 0
 
-names(diag0) <- c("Estimate", "diagnosis")
+names(stick) <- c("Estimate", "surrender")
 
-diag1 <- subset(p, select = V2)
+surrender <- subset(p_fit, select = V2)
 
-diag1$diagnosis <- 1
+surrender$surrender <- 1
 
-names(diag1) <- c("Estimate", "diagnosis")
+names(surrender) <- c("Estimate", "surrender")
 
-pred_data <- rbind(diag0, diag1)
+pred_data <- rbind(stick, surrender)
 
-pred_data$diagnosis <- as.factor(pred_data$diagnosis)
+pred_data$surrender <- as.factor(pred_data$surrender)
 
+library(ggbeeswarm)
 #create the plot
-bee <- ggplot(data, aes(x = diagnosis, y = PitchSD_z)) +
-  geom_violin(aes(x = diagnosis, y = Estimate), data = pred_data, trim = FALSE) + 
+bee <- ggplot(pool_long, aes(x = surrender, y = skill_dif_correct)) +
+  geom_violin(aes(x = surrender, y = Estimate), data = pred_data, trim = FALSE) + 
   ylim(-3,3) + 
   geom_quasirandom(alpha = 0.5, colour = "dark red") +
   labs(x = "diagnosis", y = "Pitch", title = "Flot plot") + 
-  geom_boxplot(aes(x = diagnosis, y = Estimate), data = pred_data, width = 0.12) 
+  geom_boxplot(aes(x = surrender, y = Estimate), data = pred_data, width = 0.12) 
 
   
 bee
@@ -431,4 +492,26 @@ bee
 
 dens(pred_data)
 ```
+
+
+
+
+
+
+
+
+#frequentist
+```{r}
+
+no_pool_long$Surrender <- as.factor(no_pool_long$Surrender)
+
+g = glmer(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + Follower_gender| Subject) , family = "binomial", data = no_pool_long)
+
+
+summary(g)
+
+```
+
+
+
 
