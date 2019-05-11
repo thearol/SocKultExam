@@ -12,13 +12,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 #set working directory 
 
-setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
+#setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
 
-#setwd("~/SocKultExam")
+setwd("~/SocKultExam")
 
 
 library(pacman)
-p_load(lmer, lme4, lmerTest)
+p_load(lmer, lme4, lmerTest, brms)
 
 ```
 
@@ -185,13 +185,13 @@ names(pool_estimates)[names(pool_estimates) == 'Slope_ranef_fixef_estimate_corre
 
 #create chosen leader column 
 #create a column that sorts out all the agreed trials
+
 pool_estimates$chosen_leader <- ifelse(pool_estimates$right_answer == pool_estimates$left_answer, "Agree", 0) 
 
 #Create variable, which determines the chosen leader
 pool_estimates$chosen_leader[pool_estimates$chosen_leader == 0 & pool_estimates$Joint_right == 0] <- "Left_lead"
 pool_estimates$chosen_leader[pool_estimates$chosen_leader == 0 & pool_estimates$Joint_left == 0] <- "Right_lead"
 
-pool_estimates$chosen_leader[pool_estimates$chosen_leader == "Agree"] <- NA
 
 #create column that specifies the gender of the leader
 pool_estimates$Leader_gender <- 0
@@ -225,6 +225,8 @@ pool_estimates$Follower_gender[pool_estimates$Follower_gender == "Male"] <- 0
 
 pool_estimates$Follower_gender[pool_estimates$Follower_gender == "Female"] <- 1
 
+
+
 #skill dif answer
 pool_estimates$skill_dif_answer <- 0
 pool_estimates$skill_dif_answer <- ifelse(pool_estimates$chosen_leader == "Left_lead", pool_estimates$Est_dif_blue_left_answer/pool_estimates$Est_dif_blue_right_answer, pool_estimates$Est_dif_blue_right_answer/pool_estimates$Est_dif_blue_left_answer)
@@ -234,6 +236,7 @@ pool_estimates$skill_dif_answer[pool_estimates$chosen_leader == "Agree"] <- NA
 #for correct
 pool_estimates$skill_dif_correct <- 0
 pool_estimates$skill_dif_correct <- ifelse(pool_estimates$chosen_leader == "Left_lead", pool_estimates$Est_dif_blue_left_correct/pool_estimates$Est_dif_blue_right_correct, pool_estimates$Est_dif_blue_right_correct/pool_estimates$Est_dif_blue_left_correct)
+
 pool_estimates$skill_dif_correct[pool_estimates$chosen_leader == "Agree"] <- NA
 
 
@@ -254,30 +257,47 @@ pool_estimates$Surrender[pool_estimates$chosen_leader == "Agree"] <- NA
 names(pool_estimates)[names(pool_estimates) == 'Response_left'] <- 'confidence_left'
 names(pool_estimates)[names(pool_estimates) == 'Response_right'] <- 'confidence_right'
 
-
-#take just the columns we need
-pool_long <- subset(pool_estimates, select = c(GroupNumber, unique_ID_left, unique_ID_right, dif_blue, dif_blue_abs, chosen_leader, Leader_gender, Follower_gender, skill_dif_correct, skill_dif_answer, confidence_left, confidence_right, Surrender))
+pool_data <- pool_estimates
 
 
-#change to long format 
-#collapse unique id into one
-pool_long_test <- melt(pool_long, 
-                     variable.name = "Position",
-                     value.name = "Subject",
-                     id.vars = c("GroupNumber", "dif_blue", "dif_blue_abs", "chosen_leader","Leader_gender", "Follower_gender", "skill_dif_correct", "skill_dif_answer", "confidence_left", "confidence_right", "Surrender"))
+#subset to left and right 
+pool_left <- subset(pool_data, select = c(GroupNumber, unique_ID_left, dif_blue, dif_blue_abs, chosen_leader, Leader_gender, Follower_gender, skill_dif_correct, skill_dif_answer, confidence_left, Surrender))
 
-#collape confidence left/right into one
-pool_long_test <- melt(pool_long_test, 
-                     variable.name = "one",
-                     value.name = "Confidence",
-                     id.vars = c("GroupNumber", "dif_blue", "dif_blue_abs", "chosen_leader","Leader_gender", "Follower_gender", "skill_dif_correct", "skill_dif_answer", "Surrender", "Position", "Subject"))
+pool_left$skill_dif_answer[pool_left$chosen_leader != 'Left_lead'] <- NA
+pool_left$skill_dif_correct[pool_left$chosen_leader != 'Left_lead'] <- NA
 
-#delete extra columns 
-pool_long <- select(pool_long_test, -c("one"))
+pool_left$Surrender[pool_left$chosen_leader != 'Left_lead'] <- NA
+pool_left$Leader_gender[pool_left$chosen_leader != 'Left_lead'] <- NA
+pool_left$Follower_gender[pool_left$chosen_leader != 'Left_lead'] <- NA
+
+
+pool_right <- subset(pool_data, select = c(GroupNumber, unique_ID_right, dif_blue, dif_blue_abs, chosen_leader, Leader_gender, Follower_gender, skill_dif_correct, skill_dif_answer, confidence_right, Surrender))
+
+pool_right$skill_dif_answer[pool_right$chosen_leader != 'Right_lead'] <- NA
+pool_right$skill_dif_correct[pool_right$chosen_leader != 'Right_lead'] <- NA
+
+pool_right$Surrender[pool_right$chosen_leader != 'Right_lead'] <- NA
+
+pool_right$Leader_gender[pool_right$chosen_leader != 'Right_lead'] <- NA
+pool_right$Follower_gender[pool_right$chosen_leader != 'Right_lead'] <- NA
+
+
+names(pool_left) <- c("GroupNumber", "unique_ID", "dif_blue", "dif_blue_abs", "chosen_leader", "Leader_gender", "Follower_gender", "skill_dif_correct", "skill_dif_answer", "confidence", "Surrender")
+
+
+names(pool_right) <- c("GroupNumber", "unique_ID", "dif_blue", "dif_blue_abs", "chosen_leader", "Leader_gender", "Follower_gender", "skill_dif_correct", "skill_dif_answer", "confidence", "Surrender")
+
+
+
+pool_long <- rbind(pool_left, pool_right)
+
+
+pool_disagree <- na.omit(pool_long)
 
 #make confidence absolute 
-pool_long$Confidence <- abs(pool_long$Confidence)
+#pool_long$Confidence <- abs(pool_long$Confidence)
 
+dens(pool_disagree$skill_dif_correct)
 
 ```
 
@@ -352,9 +372,9 @@ summary(m_pool_answer)
 
 ```{r create the correct model with main effects }
 
-get_prior(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), data = no_pool_long, family = "bernoulli")
+get_prior(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), data = no_pool_disagree, family = "bernoulli")
 
-get_prior(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), data = pool_long, family = "bernoulli")
+get_prior(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), data = pool_disagree, family = "bernoulli")
 
 
 
@@ -375,10 +395,10 @@ prior_correct =  c(
 
 
 #prior predictive check no pool
-prior_check_no_pool_correct <- brm(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), prior = prior_correct, data = no_pool_long, sample_prior = "only",iter = 4000, family = "bernoulli")
+prior_check_no_pool_correct <- brm(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), prior = prior_correct, data = no_pool_disagree, sample_prior = "only",iter = 4000, family = "bernoulli")
 
 #prior predictive check pool
-prior_check_pool_correct <- brm(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), prior = prior_correct, data = pool_long, sample_prior = "only",iter = 4000, family = "bernoulli")
+prior_check_pool_correct <- brm(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), prior = prior_correct, data = pool_disagree, sample_prior = "only",iter = 4000, family = "bernoulli")
 
 
 
@@ -389,7 +409,7 @@ pp_check(prior_check_pool_correct, nsamples = 100)
 
 m_no_pool_correct <- brm(
   Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ),
-  data = no_pool_long,
+  data = no_pool_disagree,
   prior = prior_correct,
   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123 # Adding a seed makes results reproducible.
@@ -399,7 +419,7 @@ m_no_pool_correct <- brm(
 
 m_pool_correct <- brm(
   Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ),
-  data = pool_long,
+  data = pool_disagree,
   prior = prior_correct,
   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123 # Adding a seed makes results reproducible.
