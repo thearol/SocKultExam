@@ -12,9 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 #set working directory 
 
-#setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
+setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
 
-setwd("~/SocKultExam")
+#setwd("~/SocKultExam")
 
 
 library(pacman)
@@ -301,9 +301,7 @@ names(pool_disagree)[names(pool_disagree) == 'unique_ID'] <- 'Subject'
 #make confidence absolute 
 #pool_long$Confidence <- abs(pool_long$Confidence)
 
-dens(pool_disagree$skill_dif_correct)
 
-pool_disagree$Surrender <- as.factor(pool_disagree$Surrender)
 
 
 ```
@@ -337,13 +335,11 @@ prior_answer =  c(
   )
 
 #prior predictive check no pool
-prior_check_no_pool_answer <- brm(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), prior = prior_answer, data = no_pool_long, sample_prior = "only",iter = 4000, family = "bernoulli")
+prior_check_no_pool_answer <- brm(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), prior = prior_answer, data = no_pool_disagree, sample_prior = "only",iter = 4000, family = "bernoulli")
 
 #prior predictive check pool
-prior_check_pool_answer <- brm(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), prior = prior_answer, data = pool_long, sample_prior = "only",iter = 4000, family = "bernoulli")
+prior_check_pool_answer <- brm(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), prior = prior_answer, data = pool_disagree, sample_prior = "only",iter = 4000, family = "bernoulli")
 
-
-pp_check(prior_check_answer, nsamples = 100)
 
 
 pp_check(prior_check_no_pool_answer, nsamples = 100)
@@ -437,18 +433,35 @@ pool_disagree$Surrender <- as.factor(pool_disagree$Surrender)
 pool_disagree$Leader_gender <- as.factor(pool_disagree$Leader_gender)
 pool_disagree$Follower_gender <- as.factor(pool_disagree$Follower_gender)
 
-m_pool_correct <- brm(
-  Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ),
-  data = pool_disagree,
-  prior = prior_correct,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-  seed = 123 # Adding a seed makes results reproducible.
-  
-  ) 
+#pool_disagree$skill_dif_correct_z <- scale(pool_disagree$skill_dif_correct)
 
+# prior_correct_z =  c(
+#   prior(normal(0,1), class = "b", coef = "Follower_gender1"),
+#   prior(normal(0,1), class = "b", coef = "Leader_gender1"),
+#   prior(normal(0,1), class = "b", coef = "Leader_gender1:Follower_gender1"),
+#   prior(normal(0,1), class = "b", coef = "skill_dif_correct_z"),
+#   prior(normal(0,1), class = "b", coef = "skill_dif_correct_z:Follower_gender1"),
+#   prior(normal(0,1), class = "b", coef = "skill_dif_correct_z:Leader_gender1"),
+#   prior(normal(0,1), class = "b", coef = "skill_dif_correct_z:Leader_gender1:Follower_gender1"),
+#   prior(normal(0,1), class = "Intercept"), 
+#   prior(normal(0,1), class = "sd", coef = "Intercept", group = "Subject"),
+#   prior(normal(0,1), class = "sd", coef = "skill_dif_correct_z:Follower_gender0", group = "Subject"),
+#   prior(normal(0,1), class = "sd", coef = "skill_dif_correct_z:Follower_gender1", group = "Subject")
+#   )
+# 
+# m_pool_correct_z <- brm(
+#   Surrender ~ skill_dif_correct_z * Leader_gender * Follower_gender + (1 + skill_dif_correct_z:Follower_gender | Subject ),
+#   data = pool_disagree,
+#   prior = prior_correct_z,
+#   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+#   seed = 123 # Adding a seed makes results reproducible.
+#   
+#   ) 
+
+#why such a big difference between effective samples?
 summary(m_pool_correct)
 
-
+summary(m_pool_answer)
 
 ```
 
@@ -474,31 +487,32 @@ pool_disagree$Leader_Follower[pool_disagree$Leader_Follower == "Leader:0_Followe
 get_prior(Surrender ~ skill_dif_correct * Leader_Follower + (1 + skill_dif_correct:Follower_gender | Subject ), data = pool_disagree, family = "bernoulli")
 
 #Defining priors
-prior_answer =  c(
-  prior(normal(0,1), class = "b", coef = "Follower_gender1"),
-  prior(normal(0,1), class = "b", coef = "Leader_gender1"),
-  prior(normal(0,1), class = "b", coef = "Leader_gender1:Follower_gender1"),
-  prior(normal(0,1), class = "b", coef = "skill_dif_answer"),
-  prior(normal(0,1), class = "b", coef = "skill_dif_answer:Follower_gender1"),
-  prior(normal(0,1), class = "b", coef = "skill_dif_answer:Leader_gender1"),
-  prior(normal(0,1), class = "b", coef = "skill_dif_answer:Leader_gender1:Follower_gender1"),
+prior_correct_thea =  c(
+  prior(normal(0,1), class = "b", coef = "Leader_Follower2"),
+  prior(normal(0,1), class = "b", coef = "Leader_Follower3"),
+  prior(normal(0,1), class = "b", coef = "Leader_Follower4"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_correct"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_correct:Leader_Follower2"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_correct:Leader_Follower3"),
+  prior(normal(0,1), class = "b", coef = "skill_dif_correct:Leader_Follower4"),
   prior(normal(0,1), class = "Intercept"), 
   prior(normal(0,1), class = "sd", coef = "Intercept", group = "Subject"),
-  prior(normal(0,1), class = "sd", coef = "skill_dif_answer:Follower_gender0", group = "Subject"),
-  prior(normal(0,1), class = "sd", coef = "skill_dif_answer:Follower_gender1", group = "Subject")
+  prior(normal(0,1), class = "sd", coef = "skill_dif_correct:Follower_gender0", group = "Subject"),
+  prior(normal(0,1), class = "sd", coef = "skill_dif_correct:Follower_gender1", group = "Subject")
   )
 
 
-thea_m_pool_answer <- brm(
-  Surrender ~ skill_dif_answer * Leader_Follower + (1 + skill_dif_answer:Follower_gender | Subject ),
+thea_m_pool_correct <- brm(
+  Surrender ~ skill_dif_correct * Leader_Follower + (1 + skill_dif_correct:Follower_gender | Subject ),
   data = pool_disagree,
-  prior = prior_answer,
+  prior = prior_correct_thea,
   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123 # Adding a seed makes results reproducible.
   
   ) 
 
 
+summary(thea_m_pool_correct)
 ```
 
 
@@ -518,19 +532,23 @@ pool_disagree$Leader_Follower <- as.factor(pool_disagree$Leader_Follower)
 
 
 nd <- 
-  tibble(skill_dif_answer= seq(from = -62, to = 15, length.out = 2000) %>% 
-           rep(., times = 2),
-         Leader_Follower = rep(1:4, each = 1000),
+  tibble(skill_dif_correct= c(min(pool_disagree$skill_dif_correct),1,max(pool_disagree$skill_dif_correct)) %>% 
+           rep(., times = 1000),
+         Follower_gender=factor(0:1) %>% rep(., times = 1500),
+         Leader_gender = factor(0:1) %>% rep(., times = 1500),
          Subject = NA)
 
+nd <- 
+  tibble(skill_dif_correct= c(min(pool_disagree$skill_dif_correct),max(pool_disagree$skill_dif_correct)), Follower_gender=factor(0:1), Leader_gender = factor(0:1) ,Subject = NA) 
 
-pred_pool_answer <-
-  fitted(m_pool_answer, newdata = nd, re_formula = NULL) %>%  # we can use the same nd data from last time
+
+pred_pool_correct <-
+  fitted(m_pool_correct, newdata = nd, re_formula = NULL) %>%  # we can use the same nd data from last time
   as_tibble() %>%
   bind_cols(nd) #%>%
 #  mutate(Leader_gender = ifelse(Leader_gender == 1, "Female", "Male"))
   
-
+pred_pool_correct <- as.data.frame(pred_pool_correct)
 
 dd %>%
   mutate(cont_africa = ifelse(cont_africa == 1, "Africa", "not Africa")) %>%
@@ -551,6 +569,58 @@ dd %>%
   theme(text = element_text(family = "Times"),
         legend.position = "none") +
   facet_wrap(~cont_africa)
+
+
+#new try
+
+#We will split up the interpretation of such model in two parts: (i) interpret the intercept (when X1 = 0) and (ii) interpret the slopes, the effect of X1 on y.
+
+#skal vi ikke rescale skill_diff? så vil mean være lig 0?
+
+test <- expand.grid(skill_dif_correct = c(min(pool_disagree$skill_dif_correct),1,max(pool_disagree$skill_dif_correct)), 
+            Follower_gender = factor(0:1),
+            Leader_gender = factor(0:1), 
+            Subject = NA,
+            Surrender = NA %>% rep(., times = 100))
+
+
+test$Surrender <- predict(m_pool_correct, newdata = test, re_formula = NULL)
+
+
+pred <- expand.grid(skill_dif_correct = c(min(pool_disagree$skill_dif_correct),1,max(pool_disagree$skill_dif_correct)),Follower_gender=factor(0:1),Leader_gender=factor(0:1),Surrender = NA,  Subject = NA)
+
+pred$Surrender <- predict(m_pool_correct,pred, re_formula = NULL)
+
+pred <- subset(pred, select = -c(Subject))
+
+#understanding the estimates: the intercepts
+ggplot(pool_disagree,aes(x=skill_dif_correct,y=Surrender,color=Follower_gender))+geom_point()+
+facet_grid(.~Leader_gender,labeller = "label_both")+
+stat_smooth(method="lm",se=FALSE) + geom_linerange(data=pred[c(2,5),],
+size=2,color="orange") +
+#geom_text(data=pred[2,],aes(label="F12"),vjust=4,color="black")+
+geom_linerange(data=pred[c(8,11),],
+size=2,color="orange")  +
+#geom_text(data=pred[8,],aes(label="F12+\nF12:F22"),vjust=2,color="black") #+
+geom_point(data=pred[pred$X==0,],color="black")
+pred$y[1]
+pred$y[2]
+
+pred[c(2,5),]
+
+pred[c(8,11),]
+
+
+#understanding the estimates: the intercepts
+ggplot(pool_disagree,aes(x=skill_dif_correct,y=Surrender,color=Follower_gender))+geom_point()+
+facet_grid(.~Leader_gender,labeller = "label_both")+
+stat_smooth(method="lm",se=FALSE) + geom_linerange(data=pred[c(2,5),],aes(ymin=Surrender[1],ymax=Surrender[2]),
+size=2,color="orange") +
+#geom_text(data=pred[2,],aes(label="F12"),vjust=4,color="black")+
+geom_linerange(data=pred[c(8,11),],aes(ymin=Surrender[1],ymax=Surrender[2]),
+size=2,color="orange")  +
+#geom_text(data=pred[8,],aes(label="F12+\nF12:F22"),vjust=2,color="black") #+
+geom_point(data=pred[pred$X==0,],color="black")
 ```
 
 
