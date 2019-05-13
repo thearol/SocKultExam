@@ -1,0 +1,34 @@
+---
+title: "after_riccardo_analysis"
+author: "Signe Kløve Kjær"
+date: "13/5/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#set working directory 
+
+setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
+
+#setwd("~/SocKultExam")
+
+#load libraries
+library(pacman)
+p_load(lme4, lmerTest, brms, tidyverse)
+
+```
+
+
+
+
+
+
+
+
+
+
+
