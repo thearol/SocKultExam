@@ -372,10 +372,10 @@ summary(m_pool_answer)
 ```
 
 ```{r}
-conditions <- make_conditions(m_pool_answer, "skill_dif_answer")
-wuu <- marginal_effects(m_pool_answer, "Leader_gender:Follower_gender", conditions = conditions, select_points = 0.1)
+conditions <- make_conditions(m_pool_correct, "skill_dif_correct")
+wuu <- marginal_effects(m_pool_correct, "Leader_gender:Follower_gender", conditions = conditions, select_points = 0.1)
 
-plot(wuu, points = TRUE)
+plot(wuu)
 
 
 dens(pool_disagree$skill_dif_answer)
@@ -513,13 +513,158 @@ thea_m_pool_correct <- brm(
 
 
 summary(thea_m_pool_correct)
+
+conditions <- make_conditions(thea_m_pool_correct, "skill_dif_correct")
+
+conditions$cond__ <- c("1","2","3")
+
+hey <- marginal_effects(thea_m_pool_correct, "skill_dif_correct:Leader_Follower")
+hey1 <- marginal_effects(thea_m_pool_correct, "Leader_Follower")
+
+marginal_effects(thea_m_pool_correct)
+```
+
+
+##lets look at some plots!!!!
+
+```{r plot with data, confidence intervals and errorbars}
+
+#look away from outliers
+low <- quantile(pool_disagree$skill_dif_correct, probs = 0.05)
+high <- quantile(pool_disagree$skill_dif_correct, probs = 0.95)
+
+#create newdata to make predictions from 
+nd <- 
+  expand.grid(tibble(skill_dif_correct= c(low, high) %>% 
+           rep(., times = 3),
+         Follower_gender=factor(0:1) %>% rep(., times = 3),
+         Leader_gender = factor(0:1) %>% rep(., times = 3),
+         Subject = NA))
+
+#predict probabilities for surrender, use fitted to get upper and lower quantile measures in probabilities
+pred_pool_correct <-
+  fitted(m_pool_correct, newdata = nd, re_formula = NULL) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd) #%>%
+  #mutate(Leader_gender = ifelse(Leader_gender == 1, "Female", "Male"))
+
+#pool_disagree$Surrender <- as.numeric(pool_disagree$Surrender)
+
+# plotting the fitted regression lines
+ggplot(pred_pool_correct, aes(x = skill_dif_correct, y = Estimate, group = Leader_gender, col = Leader_gender)) +
+  geom_line() +
+  facet_grid(. ~ Follower_gender) + 
+  geom_point(data=pool_disagree, aes(x=skill_dif_correct,y=Surrender,color=Leader_gender)) + 
+  xlim(low, high) +
+  facet_grid(.~ Follower_gender) +
+  geom_smooth(data = pred_pool_correct, aes(y = Estimate, ymin = Q2.5, ymax = Q97.5, fill = Leader_gender),stat = "identity", alpha = 1/4, size = 1/2) + facet_grid(.~ Follower_gender) + 
+  geom_errorbar(data = pred_pool_correct, aes(y = Estimate, ymin = (Estimate-Est.Error), ymax = (Estimate + Est.Error), fill = Leader_gender),stat = "identity", alpha = 2/4, size = 1/2) + facet_grid(.~ Follower_gender)
+  
+
+
+
+ggplot(pred_pool_correct, aes(x = skill_dif_correct, y = Estimate, group = Leader_gender, col = Leader_gender)) +
+  geom_line() +
+  facet_grid(. ~ Follower_gender)
+
+
+conditions <- make_conditions(m_pool_correct, "skill_dif_correct")
+conditions$cond__ <- as.character(conditions$skill_dif_correct)
+wuu <- marginal_effects(m_pool_correct, "Leader_gender:Follower_gender", conditions = conditions, select_points = 0.1)
+
+plot(wuu)
+
+marginal_effects(m_pool_correct)
+
+```
+
+
+```{r for answer}
+
+#look away from outliers
+low <- quantile(pool_disagree$skill_dif_answer, probs = 0.05)
+high <- quantile(pool_disagree$skill_dif_answer, probs = 0.95)
+
+#create newdata to make predictions from 
+nd <- 
+  expand.grid(tibble(skill_dif_answer= c(low, high) %>% 
+           rep(., times = 3),
+         Follower_gender=factor(0:1) %>% rep(., times = 3),
+         Leader_gender = factor(0:1) %>% rep(., times = 3),
+         Subject = NA))
+
+#predict probabilities for surrender, use fitted to get upper and lower quantile measures in probabilities
+pred_pool_answer <-
+  fitted(m_pool_answer, newdata = nd, re_formula = NULL) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd) #%>%
+  #mutate(Leader_gender = ifelse(Leader_gender == 1, "Female", "Male"))
+
+#pool_disagree$Surrender <- as.numeric(pool_disagree$Surrender)
+
+# plotting the fitted regression lines
+ggplot(pred_pool_answer, aes(x = skill_dif_answer, y = Estimate, group = Leader_gender, col = Leader_gender)) +
+  geom_line() +
+  facet_grid(. ~ Follower_gender) + 
+  geom_point(data=pool_disagree, aes(x=skill_dif_answer,y=Surrender,color=Leader_gender)) + 
+  xlim(low, high) +
+  facet_grid(.~ Follower_gender) +
+  geom_smooth(data = pred_pool_answer, aes(y = Estimate, ymin = Q2.5, ymax = Q97.5, fill = Leader_gender),stat = "identity", alpha = 1/4, size = 1/2) + facet_grid(.~ Follower_gender) + 
+  geom_errorbar(data = pred_pool_answer, aes(y = Estimate, ymin = (Estimate-Est.Error), ymax = (Estimate + Est.Error), fill = Leader_gender),stat = "identity", alpha = 2/4, size = 1/2) + facet_grid(.~ Follower_gender)
+  
+
+
+
+ggplot(pred_pool_answer, aes(x = skill_dif_answer, y = Estimate, group = Leader_gender, col = Leader_gender)) +
+  geom_line() +
+  facet_grid(. ~ Follower_gender)
+
+
+conditions <- make_conditions(m_pool_answer, "skill_dif_answer")
+conditions$cond__ <- as.character(conditions$skill_dif_answer)
+wuu <- marginal_effects(m_pool_answer, "Leader_gender:Follower_gender", conditions = conditions, select_points = 0.1)
+
+plot(wuu)
+
+marginal_effects(m_pool_answer)
+
+
+
+```
+
+
+
+```{r marginal effects plot}
+
+conditions <- make_conditions(m_pool_correct, "skill_dif_correct")
+conditions$cond__ <- as.character(conditions$skill_dif_correct)
+
+marginal_effects(m_pool_correct,"Leader_gender:Follower_gender", conditions = conditions)
+
+
+```
+
+```{r theas plot}
+
+# 1: FF
+# 2: MM
+# 3: FM
+# 4: MF
+
+#effect of skill_dif
+marginal_effects(thea_m_pool_correct, "skill_dif_correct:Leader_Follower")
+
+#how many times will there be a "surrender" in each condition 
+marginal_effects(thea_m_pool_correct, "Leader_Follower")
+
 ```
 
 
 
 
-
 #PLOT
+
+
 
 
 ```{r}
@@ -532,11 +677,11 @@ pool_disagree$Leader_Follower <- as.factor(pool_disagree$Leader_Follower)
 
 
 nd <- 
-  tibble(skill_dif_correct= c(min(pool_disagree$skill_dif_correct),1,max(pool_disagree$skill_dif_correct)) %>% 
-           rep(., times = 1000),
-         Follower_gender=factor(0:1) %>% rep(., times = 1500),
-         Leader_gender = factor(0:1) %>% rep(., times = 1500),
-         Subject = NA)
+  expand.grid(tibble(skill_dif_correct= c(min(pool_disagree$skill_dif_correct),1,max(pool_disagree$skill_dif_correct)) %>% 
+           rep(., times = 2),
+         Follower_gender=factor(0:1) %>% rep(., times = 3),
+         Leader_gender = factor(0:1) %>% rep(., times = 3),
+         Subject = NA))
 
 nd <- 
   tibble(skill_dif_correct= c(min(pool_disagree$skill_dif_correct),max(pool_disagree$skill_dif_correct)), Follower_gender=factor(0:1), Leader_gender = factor(0:1) ,Subject = NA) 
@@ -548,6 +693,14 @@ pred_pool_correct <-
   bind_cols(nd) #%>%
 #  mutate(Leader_gender = ifelse(Leader_gender == 1, "Female", "Male"))
   
+
+# plotting the fitted regression lines
+ggplot(pred_pool_correct, aes(x = skill_dif_correct, y = Estimate, group = Leader_gender, col = Leader_gender)) + 
+geom_line() + 
+facet_grid(. ~ Follower_gender)
+
+
+
 pred_pool_correct <- as.data.frame(pred_pool_correct)
 
 dd %>%
@@ -575,7 +728,6 @@ dd %>%
 
 #We will split up the interpretation of such model in two parts: (i) interpret the intercept (when X1 = 0) and (ii) interpret the slopes, the effect of X1 on y.
 
-#skal vi ikke rescale skill_diff? så vil mean være lig 0?
 
 test <- expand.grid(skill_dif_correct = c(min(pool_disagree$skill_dif_correct),1,max(pool_disagree$skill_dif_correct)), 
             Follower_gender = factor(0:1),
@@ -603,12 +755,7 @@ geom_linerange(data=pred[c(8,11),],
 size=2,color="orange")  +
 #geom_text(data=pred[8,],aes(label="F12+\nF12:F22"),vjust=2,color="black") #+
 geom_point(data=pred[pred$X==0,],color="black")
-pred$y[1]
-pred$y[2]
 
-pred[c(2,5),]
-
-pred[c(8,11),]
 
 
 #understanding the estimates: the intercepts
@@ -724,6 +871,8 @@ dens(pool_disagree$skill_dif_answer)
 pool_disagree$Surrender <- as.factor(pool_disagree$Surrender)
 dens(pool_disagree$Surrender)
 
+
+summary(m_pool_correct)
 ```
 
 
@@ -735,7 +884,7 @@ dens(pool_disagree$Surrender)
 
 no_pool_long$Surrender <- as.factor(no_pool_long$Surrender)
 
-g = glmer(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + Follower_gender| Subject) , family = "binomial", data = no_pool_long)
+g = glmer(Surrender ~ skill_dif_correct*Leader_Follower + (1 | Subject) , family = "binomial", data = pool_disagree)
 
 
 summary(g)
@@ -743,5 +892,63 @@ summary(g)
 ```
 
 
+### From supervision
+
+First we check whether skill difference has had any effect
+Second we test hypotheses on our model
+
+```{r}
+
+prior_m1 <- c(
+  prior(normal(0,1),class=intercept),
+  prior(normal(0,.2),class=beta),
+  prior(normal(0,.1),class=sd)
+)
+
+prior_m2 <- c(
+  prior(normal(0,.2),class=beta),
+  prior(normal(0,.1),class=sd)
+)
+
+
+# Model w skill difference
+m1 <- brm(
+  Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ),
+  data = no_pool_disagree,
+  prior = prior_m1,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  cores=2,
+  chains=2
+  ) 
+
+# Model w/o skill difference
+m2 <- brm(
+  Surrender ~ 0 + Leader_gender : Follower_gender + (0 + Follower_gender | Subject ),
+  data = no_pool_disagree,
+  prior = prior_m2,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=2,
+  cores=2
+  ) 
+
+waic(m1,m2)
+
+# Hypothesis testing
+
+# H1: there is a leader effect: male leaders tend to surrender less than female leaders
+hypothesis(m2, "(Leader_gender0:Follower_gender0 + Leader_gender0:Follower_gender1)/2 < (Leader_gender1:Follower_gender0 + Leader_gender1:Follower_gender1)/2")
+
+# H2: there is a follower effect: leaders tend to surrender more to men than to women
+hypothesis(m2, "(Leader_gender0:Follower_gender0 + Leader_gender1:Follower_gender0)/2 > (Leader_gender0:Follower_gender1 + Leader_gender1:Follower_gender1)/2")
+
+# H3: there is an interaction: 
+## males are more discriminative as to their followers gender than females are
+hypothesis(m2, "(Leader_gender0:Follower_gender0 - Leader_gender0:Follower_gender1) > (Leader_gender1:Follower_gender0 - Leader_gender1:Follower_gender1)")
+
+```
 
 

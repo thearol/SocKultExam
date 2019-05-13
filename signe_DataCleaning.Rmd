@@ -296,7 +296,9 @@ nd <- tibble(dif_blue = (seq(from = -4, to = 4, by = 1)))
 
 nd <- tibble(dif_blue = (seq(from = 0, to = 1, by = 1)))
 
-pp <- predict(m,  allow_new_levels = T, sample_new_levels = "gaussian", newdata = nd, summary = FALSE)
+pp <- predict(m, type = "response" ,allow_new_levels = T, sample_new_levels = "gaussian", newdata = nd, summary = FALSE)
+
+
 head(pp)
 
 
@@ -305,6 +307,7 @@ pp <- predict(m)
 
 # it will use the training data set to generate predictions
 y.pred = predict(m, type="response", allow_new_levels = T, sample_new_levels = "gaussian", newdata = nd, summary = FALSE)
+
 plot(data_i$dif_blue, y.pred, col=(round(y.pred)+1))
 
 
@@ -747,7 +750,17 @@ names(right) <- c("GroupNumber", "unique", "dif_blue", "answer", "joint_answer",
 right$Correct_joint <- NA
 right$joint_answer <- NA
 
-```
+
+```#leader stubbornness
+data$Stubborn_leader <- 0 #Creating column of 0's
+
+data$Stubborn_leader[data$chosen_leader == "Right_lead" & data$joint_answer == data$right_answer] <- "stick" #Inserting cases were leader stick for right leader
+data$Stubborn_leader[data$chosen_leader == "Right_lead" & data$joint_answer != data$right_answer] <- "surrender" #Inserting cases were leader surrender for right leader
+
+data$Stubborn_leader[data$chosen_leader == "Left_lead" & data$joint_answer == data$left_answer] <- "stick" #Inserting cases were leader stick for left leader
+data$Stubborn_leader[data$chosen_leader == "Left_lead" & data$joint_answer != data$left_answer] <- "surrender" #Inserting cases were leader surreder for left leader
+
+data$Stubborn_leader[data$chosen_leader == "Agree"] <- NA #Removing cases were they agree
 
 
 ```{r joint models }
