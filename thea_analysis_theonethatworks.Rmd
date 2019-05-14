@@ -385,6 +385,8 @@ plot(wuu, points = F)
 
 
 dens(pool_disagree$skill_dif_answer)
+
+
 ```
 
 
