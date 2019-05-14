@@ -9,27 +9,31 @@ output: word_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r setting working directory}
 #set working directory 
+#setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/") #Signe
+#setwd("~/SocKultExam") #Thea
 
-setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
+```
 
-#setwd("~/SocKultExam")
-
+```{r loading libraries}
 #load libraries
 library(pacman)
 p_load(lme4, lmerTest, brms, tidyverse, stringi, tm)
 
 ```
 
-
 ##PREPARE POOLING DATA
 
-```{r prepare pooling data}
+```{r load data}
 #read csv files with estimates
 pool_estimates <- read.csv("pooling_individual_wide.csv")
+```
 
-#change names 
+
+```{r clean pooling data}
+
+#Change names for sensitivity slopes
 names(pool_estimates)[names(pool_estimates) == 'Slope_ranef_fixef_estimate_answer_left'] <- 'Est_dif_blue_left_answer'
 
 names(pool_estimates)[names(pool_estimates) == 'Slope_ranef_fixef_estimate_answer_right'] <- 'Est_dif_blue_right_answer'
@@ -39,15 +43,12 @@ names(pool_estimates)[names(pool_estimates) == 'Slope_ranef_fixef_estimate_corre
 names(pool_estimates)[names(pool_estimates) == 'Slope_ranef_fixef_estimate_correct_right'] <- 'Est_dif_blue_right_correct'
 
 
-#create chosen leader column 
-#create a column that sorts out all the agreed trials
-
-pool_estimates$chosen_leader <- ifelse(pool_estimates$right_answer == pool_estimates$left_answer, "Agree", 0) 
+#Create chosen-leader-column 
+pool_estimates$chosen_leader <- ifelse(pool_estimates$right_answer == pool_estimates$left_answer, "Agree", 0) #create a column that sorts out all the agreed trials
 
 #Create variable, which determines the chosen leader
 pool_estimates$chosen_leader[pool_estimates$chosen_leader == 0 & pool_estimates$Joint_right == 0] <- "Left_lead"
 pool_estimates$chosen_leader[pool_estimates$chosen_leader == 0 & pool_estimates$Joint_left == 0] <- "Right_lead"
-
 
 #create column that specifies the gender of the leader
 pool_estimates$Leader_gender <- 0
@@ -82,22 +83,7 @@ pool_estimates$Follower_gender[pool_estimates$Follower_gender == "Male"] <- 0
 pool_estimates$Follower_gender[pool_estimates$Follower_gender == "Female"] <- 1
 
 
-
-#skill dif answer
-pool_estimates$skill_dif_answer <- 0
-pool_estimates$skill_dif_answer <- ifelse(pool_estimates$chosen_leader == "Left_lead", pool_estimates$Est_dif_blue_left_answer/pool_estimates$Est_dif_blue_right_answer, pool_estimates$Est_dif_blue_right_answer/pool_estimates$Est_dif_blue_left_answer)
-
-pool_estimates$skill_dif_answer[pool_estimates$chosen_leader == "Agree"] <- NA
-
-#for correct
-pool_estimates$skill_dif_correct <- 0
-pool_estimates$skill_dif_correct <- ifelse(pool_estimates$chosen_leader == "Left_lead", pool_estimates$Est_dif_blue_left_correct/pool_estimates$Est_dif_blue_right_correct, pool_estimates$Est_dif_blue_right_correct/pool_estimates$Est_dif_blue_left_correct)
-
-pool_estimates$skill_dif_correct[pool_estimates$chosen_leader == "Agree"] <- NA
-
-
-
-#rename stubbornb leader column
+#Rename stubborn-leader-column
 names(pool_estimates)[names(pool_estimates) == 'Stubborn_leader'] <- 'Surrender'
 
 pool_estimates$Surrender <- as.character(pool_estimates$Surrender)
@@ -114,81 +100,97 @@ names(pool_estimates)[names(pool_estimates) == 'Response_left'] <- 'confidence_l
 names(pool_estimates)[names(pool_estimates) == 'Response_right'] <- 'confidence_right'
 
 pool_data <- pool_estimates
+```
 
 
-#subset to left and right 
-pool_left <- subset(pool_data, select = c(GroupNumber, unique_ID_left, dif_blue, dif_blue_abs, chosen_leader, Leader_gender, Follower_gender, skill_dif_correct, skill_dif_answer, confidence_left, Surrender))
+```{r calculate skill difference}
 
-pool_left$skill_dif_answer[pool_left$chosen_leader != 'Left_lead'] <- NA
-pool_left$skill_dif_correct[pool_left$chosen_leader != 'Left_lead'] <- NA
+#Calculating skill difference
 
-pool_left$Surrender[pool_left$chosen_leader != 'Left_lead'] <- NA
-pool_left$Leader_gender[pool_left$chosen_leader != 'Left_lead'] <- NA
-pool_left$Follower_gender[pool_left$chosen_leader != 'Left_lead'] <- NA
+#for answer
+pool_estimates$skill_dif_answer <- 0 #Creating column of 0
+pool_estimates$skill_dif_answer <- ifelse(pool_estimates$chosen_leader == "Left_lead", pool_estimates$Est_dif_blue_left_answer/pool_estimates$Est_dif_blue_right_answer, pool_estimates$Est_dif_blue_right_answer/pool_estimates$Est_dif_blue_left_answer) #calculating skill difference as a ratio between leader and follower sensitivity
 
+pool_estimates$skill_dif_answer[pool_estimates$chosen_leader == "Agree"] <- NA #Insert NAs in all agree trials
 
-pool_right <- subset(pool_data, select = c(GroupNumber, unique_ID_right, dif_blue, dif_blue_abs, chosen_leader, Leader_gender, Follower_gender, skill_dif_correct, skill_dif_answer, confidence_right, Surrender))
+#for correct
+pool_estimates$skill_dif_correct <- 0 #Creating column of 0
+pool_estimates$skill_dif_correct <- ifelse(pool_estimates$chosen_leader == "Left_lead", pool_estimates$Est_dif_blue_left_correct/pool_estimates$Est_dif_blue_right_correct, pool_estimates$Est_dif_blue_right_correct/pool_estimates$Est_dif_blue_left_correct) #calculating skill difference as a ratio between leader and follower sensitivity
 
-pool_right$skill_dif_answer[pool_right$chosen_leader != 'Right_lead'] <- NA
-pool_right$skill_dif_correct[pool_right$chosen_leader != 'Right_lead'] <- NA
+pool_estimates$skill_dif_correct[pool_estimates$chosen_leader == "Agree"] <- NA #Insert NAs in all agree trials
 
-pool_right$Surrender[pool_right$chosen_leader != 'Right_lead'] <- NA
-
-pool_right$Leader_gender[pool_right$chosen_leader != 'Right_lead'] <- NA
-pool_right$Follower_gender[pool_right$chosen_leader != 'Right_lead'] <- NA
+```
 
 
+```{r make long format}
+#Subset to left data
+pool_left <- subset(pool_data, select = c(GroupNumber, unique_ID_left, dif_blue, dif_blue_abs, chosen_leader, Leader_gender, Follower_gender, skill_dif_correct, skill_dif_answer, confidence_left, Surrender)) #take all data for left participant
+
+pool_left$skill_dif_answer[pool_left$chosen_leader != 'Left_lead'] <- NA #insert NAs for chosen leader if not left
+pool_left$skill_dif_correct[pool_left$chosen_leader != 'Left_lead'] <- NA #insert NAs for chosen leader if not left
+
+pool_left$Surrender[pool_left$chosen_leader != 'Left_lead'] <- NA #insert NAs for chosen leader if not left
+pool_left$Leader_gender[pool_left$chosen_leader != 'Left_lead'] <- NA #insert NAs for chosen leader if not left
+pool_left$Follower_gender[pool_left$chosen_leader != 'Left_lead'] <- NA #insert NAs for chosen leader if not left
+
+#Subset right data
+pool_right <- subset(pool_data, select = c(GroupNumber, unique_ID_right, dif_blue, dif_blue_abs, chosen_leader, Leader_gender, Follower_gender, skill_dif_correct, skill_dif_answer, confidence_right, Surrender)) #Subsetting right data
+
+pool_right$skill_dif_answer[pool_right$chosen_leader != 'Right_lead'] <- NA #insert NAs for chosen leader if not right
+pool_right$skill_dif_correct[pool_right$chosen_leader != 'Right_lead'] <- NA #insert NAs for chosen leader if not right
+
+pool_right$Surrender[pool_right$chosen_leader != 'Right_lead'] <- NA #insert NAs for chosen leader if not right
+
+pool_right$Leader_gender[pool_right$chosen_leader != 'Right_lead'] <- NA #insert NAs for chosen leader if not right
+
+pool_right$Follower_gender[pool_right$chosen_leader != 'Right_lead'] <- NA #insert NAs for chosen leader if not right
+
+#Renaming the columns to match
 names(pool_left) <- c("GroupNumber", "unique_ID", "dif_blue", "dif_blue_abs", "chosen_leader", "Leader_gender", "Follower_gender", "skill_dif_correct", "skill_dif_answer", "confidence", "Surrender")
-
 
 names(pool_right) <- c("GroupNumber", "unique_ID", "dif_blue", "dif_blue_abs", "chosen_leader", "Leader_gender", "Follower_gender", "skill_dif_correct", "skill_dif_answer", "confidence", "Surrender")
 
-
-
+#Rbinding left and right data
 pool_long <- rbind(pool_left, pool_right)
 
-
+#Removing all agree trials
 pool_disagree <- na.omit(pool_long)
 
+#Renaming unique_ID column
 names(pool_disagree)[names(pool_disagree) == 'unique_ID'] <- 'Subject'
 
-
+#Removing outliers
 pool_disagree <- subset(pool_disagree, Subject != "14_signekirk")
 
 #make confidence absolute 
 #pool_long$Confidence <- abs(pool_long$Confidence)
 
-
 #remove the groupnumber from subject name to account for within participant variation
-
-
 pool_disagree$Subject <- as.character(pool_disagree$Subject)
 pool_disagree$Subject <- tolower(pool_disagree$Subject)
 
 pool_disagree$Subject <- str_extract(pool_disagree$Subject,"[a-z]+")
 
+
 ```
 
 
 #MODELS
-```{r run the answer model}
-
-#get priors
+```{r run the answer model with skill difference}
+#Get priors
 get_prior(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), data = pool_disagree, family = "bernoulli")
 
-
+#Defining priors
 prior_answer <- c(
   prior(normal(0,1),class="Intercept"),
   prior(normal(0,.2),class="b"),
   prior(normal(0,.1),class="sd")
 )
 
-
-#prior predictive check pool
+#prior predictive check
 prior_check_answer <- brm(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), prior = prior_answer, data = pool_disagree, sample_prior = "only",iter = 4000, family = "bernoulli", chains = 2, cores = 2)
 
 pp_check(prior_check_answer, nsamples = 100)
-
 
 # Model w skill difference
 m_answer <- brm(
@@ -203,26 +205,23 @@ m_answer <- brm(
   control = list(adapt_delta = 0.9) #only for answer model, due to Eff.Sample
 ) 
 
-
 summary(m_answer)
-
-
 ```
 
 
-```{r run the model with correct}
+```{r run the model with correct with skill difference}
 
-#get priors
+#Get priors
 get_prior(Surrender ~ skill_dif_correct * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), data = pool_disagree, family = "bernoulli")
 
-
+#Define priors
 prior_correct <- c(
   prior(normal(0,1),class="Intercept"),
   prior(normal(0,.2),class="b"),
   prior(normal(0,.1),class="sd")
 )
 
-#prior predictive check pool
+#Prior predictive check
 prior_check_correct <- brm(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_correct:Follower_gender | Subject ), prior = prior_correct, data = pool_disagree, sample_prior = "only",iter = 4000, family = "bernoulli", chains = 2, cores = 2)
 
 pp_check(prior_check_correct, nsamples = 100)
@@ -240,24 +239,23 @@ m_correct <- brm(
 ) 
 
 summary(m_correct)
-
 ```
 
 
 
 ```{r model without skill difference}
-
+#Defining priors
 prior_0 <- c(
   prior(normal(0,.2),class="b"),
   prior(normal(0,.1),class="sd")
 )
 
-#prior predictive check pool
+#prior predictive check
 prior_check_0 <- brm(Surrender ~ 0 + Leader_gender : Follower_gender + (0 + Follower_gender | Subject ), prior = prior_0, data = pool_disagree, sample_prior = "only",iter = 4000, family = "bernoulli", chains = 2, cores = 2)
 
 pp_check(prior_check_0, nsamples = 100)
 
-#model without skill difference, correct
+#model without skill difference
 m_0 <- brm(
   Surrender ~ 0 + Leader_gender : Follower_gender + (0 + Follower_gender | Subject ),
   data = pool_disagree,
@@ -268,7 +266,7 @@ m_0 <- brm(
   chains=2,
   cores=2
 ) 
-  
+
 marginal_effects(m_0)
 
 ```
@@ -308,7 +306,7 @@ marginal_effects(m_correct)
 
 # H1: there is a leader effect: male leaders tend to surrender less than female leaders
 ```{r H1: there is a leader effect: male leaders tend to surrender less than female leaders}
-#hypothesis
+#H1: In general male leader tend to surrender more than female leaders
 
 hypothesis(m_0, "(Leader_gender0:Follower_gender0 + Leader_gender0:Follower_gender1)/2 < (Leader_gender1:Follower_gender0 + Leader_gender1:Follower_gender1)/2")
 
@@ -325,14 +323,10 @@ hypothesis(m_0, "(Leader_gender0:Follower_gender0 + Leader_gender0:Follower_gend
 ```
 
 
-
-
 #H2: there is a follower effect: leaders tend to surrender more to men than to women
 ```{r H2: there is a follower effect: leaders tend to surrender more to men than to women }
 
-# H2: there is a follower effect: leaders tend to surrender more to men than to women
-
-
+# H2: There is a follower effect: leaders tend to surrender more to men than to women
 hypothesis(m_0, "(Leader_gender0:Follower_gender0 + Leader_gender1:Follower_gender0)/2 > (Leader_gender0:Follower_gender1 + Leader_gender1:Follower_gender1)/2")
 
 
@@ -347,15 +341,9 @@ hypothesis(m_0, "(Leader_gender0:Follower_gender0 + Leader_gender1:Follower_gend
 
 
 ```{r H3: there is an interaction, males are more discriminative as to their followers gender than females are }
-# H3: there is an interaction: males are more discriminative as to their followers gender than females are
-
+# H3: There is an interaction: males are more discriminative as to their followers gender than females are
 
 hypothesis(m_0, "(Leader_gender0:Follower_gender0 - Leader_gender0:Follower_gender1) > (Leader_gender1:Follower_gender0 - Leader_gender1:Follower_gender1)")
-
-
-
-
-
 ```
 
 
