@@ -23,9 +23,10 @@ p_load(plotly, jpeg)
 #Defining path
 #data_path = ("~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam/Data/") #Kiri
 
-setwd("~/SocKultExam")
-data_path = ("Data/") #Thea
+#setwd("~/SocKultExam")
+#data_path = ("Data/") #Thea
 
+data_path = ("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/Data/")
 
 #Listing files in path
 files <- list.files(path = data_path)
@@ -42,9 +43,13 @@ for (i in files) {
 #Kiris data
 
 #Setting different path for extraordinary files
-kiri_path = ("~/SocKultExam/") #Thea
+#kiri_path = ("~/SocKultExam/") #Thea
 #kiri_path = ("~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam/")#Kiri
+
+kiri_path = ("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
 kiri_files <- list.files(path = kiri_path, pattern = "*.csv") #Listing files in directory
+
+kiri_files <- c(kiri_files[1:4])
 
 kiri_data <- data.frame(matrix(ncol = 35, nrow = 0))#Creating empty data frame for Kiri data
 
@@ -588,7 +593,6 @@ write.csv(Results, file = "Results_left_right_joint.csv")
 
 
 #Partial pooling
-We need to transform this to long data in order to do partial pooling, maybe Signe can do her magic. 
 
 We need one column containing answer from both left and right in order to allow pooling between all participants
 
@@ -923,9 +927,15 @@ summary(dif_reg_joint)
 marginal_effects(dif_reg_joint)
 ```
 
-#Model
-```{r}
 
+
+```{r spagetti plot}
+
+summary(m_p)
+
+plot(m_p, pars = "^b_") 
+
+plot(m_p)
 ```
 
 - logistic regression individuals and joint - plot 
