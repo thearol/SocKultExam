@@ -177,7 +177,7 @@ year20_long$pos <- rep(1:8,2)
 
 year20_long$employ_pos <- year20_long$Employees
 
-year20_long$employ_pos <- c(-261, -196, -103,  -73,  -37,  -27,   -15,   -10,  238,  153,   96,   76,   62,   47,   31,    10)
+year20_long$employ_pos <- c(-266, -198 ,-103,  -71,  -40,  -24,   -14,   -13,  233,  151,   96,   78,   59,   50,   30,    13)
 
 
 
@@ -194,8 +194,104 @@ n1 + scale_fill_manual(values=fill) + geom_text(data=year20_long, aes(x = pos, y
   
 
 
+```
+
+```{r 0 bias against our bias }
+
+compare_bias <- read.csv("simulation_20.csv", stringsAsFactors = F)
+
+compare_0 <- read.csv("simulation_1.csv", stringsAsFactors = F)
+  
+compare_bias$Results <- strsplit(compare_bias$Results, ",")
+  
+compare_0$Results <- strsplit(compare_0$Results, ",")
+
+
+
+compare_bias <- list2df(compare_bias$Results, col1 = "X1", col2 = "X2")
+compare_bias <- subset(compare_bias, select = -c(X2))
+compare_bias <- t(compare_bias)
+  
+compare_bias <- gsub("\\[|\\]", "", compare_bias)
+  
+compare_bias <- data.frame(compare_bias, stringsAsFactors = F)
+
+compare_bias <- compare_bias[9:16]
+
+names(compare_bias) <- c("female_level1", "female_level2", "female_level3", "female_level4", "female_level5", "female_level6", "female_level7", "female_level8")
+ 
+  
+  compare_bias$female_level8 <- round(as.numeric(compare_bias$female_level8), digits = 2)
+  compare_bias$female_level7 <- round(as.numeric(compare_bias$female_level7), digits = 2)
+  compare_bias$female_level6 <- round(as.numeric(compare_bias$female_level6), digits = 2)
+  compare_bias$female_level5 <- round(as.numeric(compare_bias$female_level5), digits = 2)
+  compare_bias$female_level4 <- round(as.numeric(compare_bias$female_level4), digits = 2)
+  compare_bias$female_level3 <- round(as.numeric(compare_bias$female_level3), digits = 2)
+  compare_bias$female_level2 <- round(as.numeric(compare_bias$female_level2), digits = 2)
+  compare_bias$female_level1 <- round(as.numeric(compare_bias$female_level1), digits = 2)
+ 
+
+compare_bias_long <- as.data.frame(t(compare_bias[1:8]))  
+compare_bias_long$bias <- "Bias taken from model"
+compare_bias_long$Level <- rep(1:8,1)
+
+
+compare_bias_long$posy <- compare_bias_long$X1
+
+compare_bias_long$posy <- compare_bias_long$posy + c(-3,0.5,-1.5,-2,-5,6,-5,-1)
+
+
+
+compare_0 <- list2df(compare_0$Results, col1 = "X1", col2 = "X2")
+compare_0 <- subset(compare_0, select = -c(X2))
+compare_0 <- t(compare_0)
+  
+compare_0 <- gsub("\\[|\\]", "", compare_0)
+  
+compare_0 <- data.frame(compare_0, stringsAsFactors = F)
+
+compare_0 <- compare_0[9:16]
+
+names(compare_0) <- c("female_level1", "female_level2", "female_level3", "female_level4", "female_level5", "female_level6", "female_level7", "female_level8")
+ 
+  
+  compare_0$female_level8 <- round(as.numeric(compare_0$female_level8), digits = 2)
+  compare_0$female_level7 <- round(as.numeric(compare_0$female_level7), digits = 2)
+  compare_0$female_level6 <- round(as.numeric(compare_0$female_level6), digits = 2)
+  compare_0$female_level5 <- round(as.numeric(compare_0$female_level5), digits = 2)
+  compare_0$female_level4 <- round(as.numeric(compare_0$female_level4), digits = 2)
+  compare_0$female_level3 <- round(as.numeric(compare_0$female_level3), digits = 2)
+  compare_0$female_level2 <- round(as.numeric(compare_0$female_level2), digits = 2)
+  compare_0$female_level1 <- round(as.numeric(compare_0$female_level1), digits = 2)
+ 
+
+compare_0_long <- as.data.frame(t(compare_0[1:8]))  
+compare_0_long$bias <- "Zero bias"
+
+compare_0_long$Level <- rep(1:8)
+
+
+compare_long <- rbind(compare_0_long, compare_bias_long)
+
+
+compare <- ggplot(compare_long, aes(x = Level, y = X1, color = bias)) + 
+  geom_point() + geom_line() +
+  labs(x="Level", y="Percentage of women employees") +
+  ggtitle("Women employees at each level with and without a bias") + 
+  scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6", "7", "8")) + 
+  scale_color_manual(values=c("palegreen3", "grey")) + 
+  labs(color = "Bias") + 
+  scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
+  geom_text(data=compare_bias_long, aes(x = Level, y = posy, label = paste0(X1,"%")), size=4, position = position_dodge(width=1)) +  theme_bw()
+
+compare
 
 ```
 
 
+```{r}
+
+
+
+```
 
