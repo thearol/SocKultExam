@@ -318,7 +318,7 @@ n = n + 1
 ```
 
 #Making long format
-This is in order to calculate the equality bias
+This is in order to calculate the equality bias 
 
 ```{r making long format, include = FALSE}
 #take just the columns we need
@@ -333,8 +333,6 @@ L_data <- melt(Results,
                      id.vars = c("GroupNumber", "Gender_left", "Gender_right", "Familiarity", "dif_blue", "left_answer", "right_answer", "joint_answer"))
 
 ```
-
-
 
 ##Følgende blev ikke nødvendigt alligevel...
 ```{r logistic regression using long format, individual}
