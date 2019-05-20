@@ -188,6 +188,15 @@ pool_estimates$Stubborn_leader[pool_estimates$chosen_leader == "Left_lead" & poo
 
 pool_estimates$Stubborn_leader[pool_estimates$chosen_leader == "Agree"] <- NA #Removing cases were they agree
 
+#code leader and follower gender as dummies, 0 = male, 1 = female
+pool_estimates$Leader_gender[pool_estimates$Leader_gender == "Male"] <- 0
+
+pool_estimates$Leader_gender[pool_estimates$Leader_gender == "Female"] <- 1
+
+pool_estimates$Follower_gender[pool_estimates$Follower_gender == "Male"] <- 0
+
+pool_estimates$Follower_gender[pool_estimates$Follower_gender == "Female"] <- 1
+
 
 
 #skill dif answer
@@ -369,13 +378,20 @@ m_pool_correct <- brm(
 ```
 
 
-
 ```{r}
 predict predicts new data (0 or 1s in your case) while fitted returns the probability of getting a one. To see this, try out fitted(m, summary = FALSE) and predict(m, summary = FALSE)
 
 
+d <- tibble(z=rbinom(100, 1, 0.6))
+m <- brm(z ~ 1, d, family=bernoulli())
+summary(m)
+predict(m, robust=TRUE)
+
+
+
 #make predictions
-nd <- tibble(diagnosis = factor(seq(from = 0, to = 1, by = 1)))
+nd <- tibble(Surrender = factor(seq(from = 0, to = 1, by = 1)), Leader_gender = factor(seq(from = 0, to = 1, by = 1)), Follower_gender = factor(seq(from = 0, to = 1, by = 1)), skill_dif_correct)
+
          
 p <- predict(model_1.3, allow_new_levels = T, re_formula = ~ (1 | ID), sample_new_levels = "gaussian", newdata = nd, summary = FALSE)
 
@@ -412,5 +428,55 @@ bee
 
 
 dens(pred_data)
+```
+
+
+
+```{r}
+pool_long_2 <- pool_long$
+
+nd <- 
+  tibble(skill_dif_answer = seq(from = -62, to = 8, length.out = 100) %>% 
+           rep(., times = 2),
+         Leader_gender = rep(0:1, each = 100),
+         Follower_gender = rep(0:1, each = 100))
+
+
+b7.5b <-
+  update(b7.5,
+         formula = log_gdp ~ 1 + rugged + cont_africa + rugged:cont_africa) 
+
+
+f <-
+  fitted(b7.5, newdata = nd) %>%  # we can use the same `nd` data from last time
+  as_tibble() %>%
+  bind_cols(nd) %>%
+  mutate(cont_africa = ifelse(cont_africa == 1, "Africa", "not Africa"))
+
+
+dd %>%
+  mutate(cont_africa = ifelse(cont_africa == 1, "Africa", "not Africa")) %>%
+  
+  ggplot(aes(x = rugged, color = cont_africa)) +
+  geom_smooth(data = f,
+              aes(y = Estimate, ymin = Q2.5, ymax = Q97.5,
+                  fill = cont_africa),
+              stat = "identity", 
+              alpha = 1/4, size = 1/2) +
+  geom_point(aes(y = log_gdp),
+             size = 2/3) +
+  scale_colour_pander() +
+  scale_fill_pander() +
+  scale_x_continuous("Terrain Ruggedness Index", expand = c(0, 0)) +
+  ylab("log GDP from year 2000") +
+  theme_pander() + 
+  theme(text = element_text(family = "Times"),
+        legend.position = "none") +
+  facet_wrap(~cont_africa)
+```
+
+
+```{r}
+dens(pool_long$skill_dif_answer)
 ```
 

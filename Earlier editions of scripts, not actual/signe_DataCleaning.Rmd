@@ -28,6 +28,7 @@ p_load(plotly, jpeg)
 
 setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
 
+
 data_path = ("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/Data/")
 
 plot_path = ("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/plots/")
@@ -45,9 +46,11 @@ for (i in files) {
 }
 
 #KIRIS DATA
-kiri_path = ("~/SocKultExam/")
+kiri_path = ("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
 kiri_files <- list.files(path = kiri_path, pattern = "*.csv")
 kiri_files
+
+kiri_files <- kiri_files[1:4]
 
 kiri_data <- data.frame(matrix(ncol = 35, nrow = 0))
 
@@ -153,6 +156,8 @@ data$Follower_gender <- 0
 data$Follower_gender <- ifelse(data$chosen_leader == "Left_lead", as.character(data$Gender_right), as.character(data$Gender_left))
 data$Follower_gender[data$chosen_leader == "Agree"] <- NA
 
+
+table(data$chosen_leader)
 ```
 
 
