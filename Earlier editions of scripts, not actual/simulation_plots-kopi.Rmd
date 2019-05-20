@@ -1,0 +1,61 @@
+---
+title: "simulation"
+author: "Thea Rolskov Sloth"
+date: "14/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("~/Documents/4. SEMESTER/Social and cultural dynamics/exam/script")
+
+library(pacman)
+p_load(strsplit, qdapTools, stringr, plyr)
+```
+
+
+```{r}
+
+s <- read.csv("simulation.csv", stringsAsFactors = F)
+
+s$Results <- strsplit(s$Results, ",")
+
+ss <- list2df(s$Results, col1 = "X1", col2 = "X2")
+ss <- subset(ss, select = -c(X2))
+ss <- t(ss)
+
+ss <- gsub("\\[|\\]", "", ss)
+
+ss <- data.frame(ss, stringsAsFactors = F)
+names(ss) <- c("male_level8", "male_level7", "male_level6", "male_level5", "male_level4", "male_level3", "male_level2", "male_level1","female_level8", "female_level7", "female_level6", "female_level5", "female_level4", "female_level3", "female_level2", "female_level1", "bias", "gender" )
+
+ss$male_level8 <- round(as.numeric(ss$male_level8), digits = 2)
+ss$male_level7 <- round(as.numeric(ss$male_level7), digits = 2)
+ss$male_level6 <- round(as.numeric(ss$male_level6), digits = 2)
+ss$male_level5 <- round(as.numeric(ss$male_level5), digits = 2)
+ss$male_level4 <- round(as.numeric(ss$male_level4), digits = 2)
+ss$male_level3 <- round(as.numeric(ss$male_level3), digits = 2)
+ss$male_level2 <- round(as.numeric(ss$male_level2), digits = 2)
+ss$male_level1 <- round(as.numeric(ss$male_level1), digits = 2)
+
+ss$female_level8 <- round(as.numeric(ss$female_level8), digits = 2)
+ss$female_level7 <- round(as.numeric(ss$female_level7), digits = 2)
+ss$female_level6 <- round(as.numeric(ss$female_level6), digits = 2)
+ss$female_level5 <- round(as.numeric(ss$female_level5), digits = 2)
+ss$female_level4 <- round(as.numeric(ss$female_level4), digits = 2)
+ss$female_level3 <- round(as.numeric(ss$female_level3), digits = 2)
+ss$female_level2 <- round(as.numeric(ss$female_level2), digits = 2)
+ss$female_level1 <- round(as.numeric(ss$female_level1), digits = 2)
+
+
+
+
+
+```
+
+
+
+

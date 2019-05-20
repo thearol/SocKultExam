@@ -169,7 +169,6 @@ pool_estimates$chosen_leader <- ifelse(pool_estimates$right_answer == pool_estim
 pool_estimates$chosen_leader[pool_estimates$chosen_leader == 0 & pool_estimates$Joint_right == 0] <- "Left_lead"
 pool_estimates$chosen_leader[pool_estimates$chosen_leader == 0 & pool_estimates$Joint_left == 0] <- "Right_lead"
 
-pool_estimates$chosen_leader[pool_estimates$chosen_leader == "Agree"] <- NA
 
 #create column that specifies the gender of the leader
 pool_estimates$Leader_gender <- 0
@@ -389,7 +388,16 @@ summary(m_pool_correct)
 
 
 ```{r}
+<<<<<<< HEAD
+nd <- 
+  tibble(skill_dif_correct= seq(from = -63, to = 6.3, length.out = 30) %>% 
+           rep(., times = 2),
+         Leader_gender = rep(0:1, each = 30),
+         Follower_gender = rep(0:1, each = 30))
+
+=======
 predict predicts new data (0 or 1s in your case) while fitted returns the probability of getting a one. To see this, try out fitted(m, summary = FALSE) and predict(m, summary = FALSE)
+>>>>>>> e91c24716b57bef7a3c8abc2aaf895b8af4509aa
 
 
 #make predictions

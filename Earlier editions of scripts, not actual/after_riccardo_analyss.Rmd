@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r setting working directory}
 #set working directory 
-#setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/") #Signe
+setwd("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/") #Signe
 #setwd("~/SocKultExam") #Thea
 
 ```
@@ -159,8 +159,13 @@ pool_disagree <- na.omit(pool_long)
 #Renaming unique_ID column
 names(pool_disagree)[names(pool_disagree) == 'unique_ID'] <- 'Subject'
 
-#Removing outliers
-pool_disagree <- subset(pool_disagree, Subject != "14_signekirk")
+#Removing outliers for the answer model
+pool_disagree_outlier_rem <- subset(pool_disagree, Subject != "14_signekirk")
+
+pool_disagree_outlier_rem$Subject <- as.character(pool_disagree_outlier_rem$Subject)
+pool_disagree_outlier_rem$Subject <- tolower(pool_disagree_outlier_rem$Subject)
+
+pool_disagree_outlier_rem$Subject <- str_extract(pool_disagree_outlier_rem$Subject,"[a-z]+")
 
 #make confidence absolute 
 #pool_long$Confidence <- abs(pool_long$Confidence)
@@ -178,7 +183,7 @@ pool_disagree$Subject <- str_extract(pool_disagree$Subject,"[a-z]+")
 #MODELS
 ```{r run the answer model with skill difference}
 #Get priors
-get_prior(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), data = pool_disagree, family = "bernoulli")
+get_prior(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), data = pool_disagree_outlier_rem, family = "bernoulli")
 
 #Defining priors
 prior_answer <- c(
@@ -188,14 +193,14 @@ prior_answer <- c(
 )
 
 #prior predictive check
-prior_check_answer <- brm(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), prior = prior_answer, data = pool_disagree, sample_prior = "only",iter = 4000, family = "bernoulli", chains = 2, cores = 2)
+prior_check_answer <- brm(Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ), prior = prior_answer, data = pool_disagree_outlier_rem, sample_prior = "only",iter = 4000, family = "bernoulli", chains = 2, cores = 2)
 
 pp_check(prior_check_answer, nsamples = 100)
 
 # Model w skill difference
 m_answer <- brm(
   Surrender ~ skill_dif_answer * Leader_gender * Follower_gender + (1 + skill_dif_answer:Follower_gender | Subject ),
-  data = pool_disagree,
+  data = pool_disagree_outlier_rem,
   prior = prior_answer,
   sample_prior=T,
   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
@@ -209,6 +214,10 @@ summary(m_answer)
 ```
 
 
+<<<<<<< HEAD:after_riccardo_analyss.Rmd
+
+=======
+>>>>>>> a864b8b623ed8af5a575d38016f13d5128046c44:Earlier editions of scripts, not actual/after_riccardo_analyss.Rmd
 ```{r model without skill difference}
 #Defining priors
 prior_0 <- c(
