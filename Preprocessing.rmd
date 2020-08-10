@@ -9,25 +9,29 @@ output: word_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
+#Loading packages
 ```{r loading packages, include = FALSE}
+library(brms);library(tidyverse); library(tidybayes); library(ggplot2); library(LaplacesDemon); library(tidyr); library(reshape2);library(pacman); library(tibble);library(tidyr);
 
-#install.packages("tidybayes"); install.packages("LaplacesDemon")
-library(brms); library(tidyverse); library(tidybayes); library(ggplot2); library(LaplacesDemon); library(rethinking); library(tidyr); library(reshape2);library(pacman); library(tibble);library(tidyr) ;library(pacman)
-
-p_load(plotly, jpeg, tm)
 ```
 
-```{r loading data and merging, include = FALSE}
 
+#Define path
+```{r}
 #Defining path
-#data_path = ("~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam/Data/") #Kiri
+data_path = ("~/SocKultExam/Data/") #Kiri
 
+#Thea
 #setwd("~/SocKultExam")
-#data_path = ("Data/") #Thea
+#data_path = ("Data/") 
 
-data_path = ("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/Data/")
+#Signe
+#data_path = ("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/Data/")
+```
 
+
+#Loading data and merging
+```{r loading main data include = FALSE}
 #Listing files in path
 files <- list.files(path = data_path)
 
@@ -40,18 +44,19 @@ for (i in files) {
   data = rbind(data,d)
 }
 
-#Kiris data
+```
 
+```{r loading data with different amount of trials}
 #Setting different path for extraordinary files
 #kiri_path = ("~/SocKultExam/") #Thea
-#kiri_path = ("~/Cognitive Science/4. Semester/Social and Cultural Dynamics Exam/SocKultExam/")#Kiri
+kiri_path = ("~/SocKultExam/kiri/")#Kiri
+#kiri_path = ("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/") #Signe
 
-kiri_path = ("/Users/signeklovekjaer/Documents/CognitiveScience/4.semester/Social_and_cultural_dynamics_in_cognition/Exam/SocKultExam/")
-kiri_files <- list.files(path = kiri_path, pattern = "*.csv") #Listing files in directory
+#Listing files in directory
+kiri_files <- list.files(path = kiri_path, pattern = "*.csv") 
 
-kiri_files <- c(kiri_files[1:4])
-
-kiri_data <- data.frame(matrix(ncol = 35, nrow = 0))#Creating empty data frame for Kiri data
+#Creating empty data frame
+kiri_data <- data.frame(matrix(ncol = 35, nrow = 0))
 
 #Looping through Kiri data 
 for (i in kiri_files) {
@@ -59,13 +64,17 @@ for (i in kiri_files) {
   kiri_data = rbind(kiri_data, d)
 }
 
-
-#merge the two dataframes
-kiri_data <- add_column(kiri_data, Computer = "Two screens", .after = 4)
-data <- rbind(data, kiri_data)
-
 ```
 
+
+```{r}
+#Merge the two dataframes
+kiri_data <- add_column(kiri_data, Computer = "Two screens", .after = 4)
+data <- rbind(data, kiri_data)
+```
+
+
+#Data cleaning
 ```{r cleaning data, include = FALSE}
 
 #Removing column of x
@@ -110,9 +119,9 @@ data$SubjectID_left[data$SubjectID_left == "Nina"] <- "nina"
 data$SubjectID_right[data$SubjectID_right == "theasmom"] <- "Theasmom"
 data$SubjectID_left[data$SubjectID_left == "emma"] <- "Emma"
 data$SubjectID_right[data$SubjectID_right == "LasseKob"] <- "Lasse"
-
 ```
 
+##Adding difficulty variable og dummy coding
 ```{r making variables for sensitivty, include = FALSE}
 #Making unique subjects
 data$unique_ID_right <- paste(data$GroupNumber, data$SubjectID_right, sep = "_")
@@ -134,6 +143,8 @@ data$joint_answer[data$joint_answer == 0] <- NA #Replacing 0's with NA
 data$joint_answer[data$joint_answer == -1] <- 0
 ```
 
+
+##Adding variables: Agree, chosen leader and gender
 ```{r coding for leader/follower}
 
 #create a column that sorts out all the agreed trials
@@ -155,8 +166,8 @@ data$Follower_gender[data$chosen_leader == "Agree"] <- NA
 
 ```
 
+#Adding variable: Stick/surrender
 ```{r Did the leader stick?}
-
 #leader stubbornness
 data$Stubborn_leader <- 0 #Creating column of 0's
 
@@ -168,14 +179,13 @@ data$Stubborn_leader[data$chosen_leader == "Left_lead" & data$joint_answer != da
 
 data$Stubborn_leader[data$chosen_leader == "Agree"] <- NA #Removing cases were they agree
 
-
 ```
 
 ```{r Plotting the effect of stick or surrender, leader and follower gender}
 #Filtering data to include only joint decisions
 disagree_data <- na.omit(data)
 
-#Making column specifying the leader and follower gender
+#Making one column specifying the leader and follower gender
 disagree_data$Leader_Follower <- paste("Leader:", disagree_data$Leader_gender, "_Follower:", disagree_data$Follower_gender, sep = "")
 
 #Recoding stick to 0 and 1, stick = 1, 0 = surrender
@@ -185,8 +195,6 @@ disagree_data$stick <- ifelse(disagree_data$Stubborn_leader == "stick", 1, 0)
 ggplot(data = disagree_data, aes(Stubborn_leader, fill = Stubborn_leader)) +
   facet_grid(~Leader_Follower) +
   geom_histogram(stat = "count")
-
-
 
 ```
 
